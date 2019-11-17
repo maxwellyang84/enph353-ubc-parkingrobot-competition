@@ -12,6 +12,7 @@ class state_machine:
     def __init__(self):
         self.image_sub = rospy.Subscriber('/R1/pi_camera/image_raw', Image, self.callback)
         self.vel_pub = rospy.Publisher("/R1/cmd_vel", Twist, queue_size=30)
+        #self.license_plate_pub = rospy.Publisher("/license_plate topic", std_msgs.msg.String, queue_size=30)
         self.bridge = CvBridge()
         self.last_err = 0
    
@@ -22,13 +23,32 @@ class state_machine:
             print(e)
         
         offset = 0
-        frame = state_machine.image_converter(cv_image)
+        # frame = state_machine.image_converter(cv_image)
+        frame = cv.cvtColor(cv_image, cv.COLOR_BGR2GRAY)
+        edged = cv.Canny(frame, 30, 200) 
+        cv.waitKey(0) 
+        
+        # Finding Contours 
+        # Use a copy of the image e.g. edged.copy() 
+        # since findContours alters the image 
+        image, contours, _ = cv.findContours(edged, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        
+        cv.imshow('Canny Edges After Contouring', edged) 
+        cv.waitKey(0) 
+        
+        print("Number of Contours found = " + str(len(contours))) 
+        
+        # Draw all contours 
+        # -1 signifies drawing all contours 
+        cv.drawContours(cv_image, contours, -1, (0, 255, 0), 3) 
+        
+        cv.imshow('Contours', cv_image) 
        # centre = state_machine.get_centre(frame)
      
         # self.speed_controller(centre)
         #cv.circle(frame, (int(centre), 700), 20, (255, 0, 0), -1)
 
-        cv.imshow("Robot", frame)
+        # cv.imshow("Robot", frame)
         cv.waitKey(3) 
     
     @staticmethod
