@@ -18,6 +18,7 @@ class state_machine:
         self.vel_pub = rospy.Publisher("/R1/cmd_vel", Twist, queue_size=30)
         self.bridge = CvBridge()
         self.last_err = 0
+        self.last_pos = 0
    
     def callback(self,data):
         try:
@@ -27,12 +28,13 @@ class state_machine:
         
         offset = 0
         frame = state_machine.image_converter(cv_image)
-        position = state_machine.get_position(frame)
+        position = state_machine.get_position(frame, self.last_pos)
+        self.last_pos = position
      
         light_grey = (70, 70, 70)
         dark_grey = (135, 135, 135)
         frame = cv.inRange(frame, light_grey, dark_grey) #road is white and majority of other stuff is black
-
+        
         self.speed_controller(position)
 
         #frame = cv.cvtColor(frame, cv.COLOR_GRAY2BGR)
@@ -44,7 +46,7 @@ class state_machine:
         cv.waitKey(3) 
 
     @staticmethod
-    def get_position(frame):
+    def get_position(frame, last_pos):
         light_grey = (65, 65, 65)
         dark_grey = (140, 140, 140)
 
@@ -61,12 +63,18 @@ class state_machine:
         
         if (pixel_count != 0):
             weighted_sum = weighted_sum/pixel_count
-            print(NUM_PIXELS_X/2-weighted_sum)
-            return NUM_PIXELS_X/2-weighted_sum #if positive, turn left
+            pos = NUM_PIXELS_X/2-weighted_sum-1
+            print(pos)
+            return pos#if positive, turn left
         else:
-            weighted_sum = 0
-            print(0)
-            return 0
+            if (last_pos > 0):
+                pos = 500          
+            elif (last_pos < 0):
+                pos = -500
+            else:
+                pos = 0
+            print(pos)
+            return pos
         
         #count grey from: x:200 1150 , y: 345
 
@@ -84,7 +92,7 @@ class state_machine:
 
     def speed_controller(self, position):
         velocity = Twist()
-        if (abs(position) < 20):
+        if (abs(position) < 60):
             velocity.linear.x = 0.005 #0.3
         else:
             p = KP * position
