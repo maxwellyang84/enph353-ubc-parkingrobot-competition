@@ -16,6 +16,7 @@ class state_machine:
     def __init__(self):
         self.image_sub = rospy.Subscriber('/R1/pi_camera/image_raw', Image, self.callback)
         self.vel_pub = rospy.Publisher("/R1/cmd_vel", Twist, queue_size=30)
+        #self.license_plate_pub = rospy.Publisher("/license_plate topic", std_msgs.msg.String, queue_size=30)
         self.bridge = CvBridge()
         self.last_err = 0
         self.last_pos = 0
