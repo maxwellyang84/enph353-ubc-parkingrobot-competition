@@ -4,15 +4,84 @@
 import cv2 
 import numpy as np  
 import imutils
+import keras 
+from keras.models import load_model
+from keras import layers
+from keras import models
+from keras import optimizers
+
+from keras.utils import plot_model
+from keras import backend
+from matplotlib import pyplot as plt
   
 # Webcamera no 0 is used to capture the frames 
 
-  
+def four_point_transform(image, pts):
+	# obtain a consistent order of the points and unpack them
+	# individually
+	rect = order_points(pts)
+	(tl, tr, br, bl) = rect
+ 
+	# compute the width of the new image, which will be the
+	# maximum distance between bottom-right and bottom-left
+	# x-coordiates or the top-right and top-left x-coordinates
+	widthA = np.sqrt(((br[0] - bl[0]) ** 2) + ((br[1] - bl[1]) ** 2))
+	widthB = np.sqrt(((tr[0] - tl[0]) ** 2) + ((tr[1] - tl[1]) ** 2))
+	maxWidth = max(int(widthA), int(widthB))
+ 
+	# compute the height of the new image, which will be the
+	# maximum distance between the top-right and bottom-right
+	# y-coordinates or the top-left and bottom-left y-coordinates
+	heightA = np.sqrt(((tr[0] - br[0]) ** 2) + ((tr[1] - br[1]) ** 2))
+	heightB = np.sqrt(((tl[0] - bl[0]) ** 2) + ((tl[1] - bl[1]) ** 2))
+	maxHeight = max(int(heightA), int(heightB))
+ 
+	# now that we have the dimensions of the new image, construct
+	# the set of destination points to obtain a "birds eye view",
+	# (i.e. top-down view) of the image, again specifying points
+	# in the top-left, top-right, bottom-right, and bottom-left
+	# order
+	dst = np.array([
+		[0, 0],
+		[maxWidth - 1, 0],
+		[maxWidth - 1, maxHeight - 1],
+		[0, maxHeight - 1]], dtype = "float32")
+ 
+	# compute the perspective transform matrix and then apply it
+	M = cv2.getPerspectiveTransform(rect, dst)
+	warped = cv2.warpPerspective(image, M, (maxWidth, maxHeight))
+ 
+	# return the warped image
+	return warped
+
+def order_points(pts):
+	# initialzie a list of coordinates that will be ordered
+	# such that the first entry in the list is the top-left,
+	# the second entry is the top-right, the third is the
+	# bottom-right, and the fourth is the bottom-left
+	rect = np.zeros((4, 2), dtype = "float32")
+ 
+	# the top-left point will have the smallest sum, whereas
+	# the bottom-right point will have the largest sum
+	s = pts.sum(axis = 1)
+	rect[0] = pts[np.argmin(s)]
+	rect[2] = pts[np.argmax(s)]
+ 
+	# now, compute the difference between the points, the
+	# top-right point will have the smallest difference,
+	# whereas the bottom-left will have the largest difference
+	diff = np.diff(pts, axis = 1)
+	rect[1] = pts[np.argmin(diff)]
+	rect[3] = pts[np.argmax(diff)]
+ 
+	# return the ordered coordinates
+	return rect
+
 # This drives the program into an infinite loop. 
 
     # Captures the live stream frame-by-frame 
 frame = cv2.imread('./image_test.png')
-frame = cv2.medianBlur(frame,5)
+# frame = cv2.medianBlur(frame,5)
 frame = frame[750:,0:1279]
     # Converts images from BGR to HSV 
 hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV) 
@@ -32,24 +101,6 @@ cv2.imshow('frame',frame)
 cv2.imshow('mask',mask) 
 cv2.imshow('res',res) 
 
-# ret, thresh = cv2.threshold(mask, 200, 255, 0)
-# im2, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-# contours = [c for c in contours if cv2.contourArea(c) > 1000]
-# approx = []
-# for cnt in contours:
-#     epsilon = 0.01*cv2.arcLength(cnt,True)
-#     approx.append(cv2.approxPolyDP(cnt,epsilon,True))
-
-# cntx1 = cnt[0]
-# cntx = cnt[1]
-# contours[0]
-# #convert coords to points
-# pt1 = (cntx1[0][0],cntx1[0][1])
-# pt2 = (cntx[0][0],cntx[0][1])
-
-# #draw circles on coordinates
-# cv2.circle(frame,pt1,5,(0,255,0),-1)
-# cv2.circle(frame,pt2, 5, (0,255,0),-1)
 thresh = cv2.threshold(mask, 45, 255, cv2.THRESH_BINARY)[1]
 thresh = cv2.erode(thresh, None, iterations=2)
 thresh = cv2.dilate(thresh, None, iterations=2)
@@ -79,7 +130,53 @@ x2,y2 = extBot2
 x3,y3 = extRight
 x4,y4 = extLeft2 
 
-cropped = frame[y: y2+ 20, x3:x4]
+cropped = frame[y+20: y2+ 20, x3:x4]
+
+height, width, channels = cropped.shape
+
+hsv = cv2.cvtColor(cropped, cv2.COLOR_BGR2HSV) 
+
+lower_gray = np.array([0, 2, 0], np.uint8)
+upper_gray = np.array([255, 255, 255], np.uint8)
+mask_gray = cv2.inRange(hsv, lower_gray, upper_gray)
+img_res = cv2.bitwise_and(cropped, cropped, mask = mask_gray)
+
+
+thresh = cv2.threshold(mask_gray, 45, 255, cv2.THRESH_BINARY)[1]
+thresh = cv2.erode(thresh, None, iterations=2)
+thresh = cv2.dilate(thresh, None, iterations=2)
+ 
+# find contours in thresholded image, then grab the largest
+# one
+cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
+	cv2.CHAIN_APPROX_SIMPLE)  
+cnts = imutils.grab_contours(cnts)
+
+cv2.imshow("mask_gray", mask_gray)
+cv2.imshow("img_res", img_res)
+
+# mask_gray = cv2.bitwise_not(mask_gray)
+# ret, thresh = cv2.threshold(mask_gray, 200, 255, 0)
+# __, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+contours = [c for c in cnts if cv2.contourArea(c) > 100]
+# cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
+
+c = contours[0]
+
+# determine the most extreme points along the contour
+extLeft = tuple(c[c[:, :, 0].argmin()][0])
+extRight = tuple(c[c[:, :, 0].argmax()][0])
+extTop = tuple(c[c[:, :, 1].argmin()][0])
+extBot = tuple(c[c[:, :, 1].argmax()][0])
+
+# cv2.circle(cropped, extLeft, 8, (0, 0, 255), -1)
+# cv2.circle(cropped, extRight, 8, (0, 255, 0), -1)
+# cv2.circle(cropped, extTop, 8, (255, 0, 0), -1)
+# cv2.circle(cropped, extBot, 8, (255, 255, 0), -1)
+
+cropped = four_point_transform(cropped, np.array([(0,0),(width-30,0),extRight, extBot], dtype="float32"))
+cv2.imshow("gray", cropped)
+
 hsv = cv2.cvtColor(cropped, cv2.COLOR_BGR2HSV) 
 lower_red = np.array([110,50,50]) 
 upper_red = np.array([130,255,255]) 
@@ -98,52 +195,87 @@ cv2.imshow('mask2',mask)
 cv2.imshow('res2',res) 
 cv2.imshow("Comparison", cropped)
 
+mask = cv2.bitwise_not(mask)
+cv2.imshow("bitwsie_not", mask)
+lower_black = np.array([0,0,0])
+upper_black = np.array([180,255,30])
+imgThreshold = cv2.inRange(hsv, lower_black, upper_black)
 
+cv2.imshow('lol', imgThreshold)
 
+ 
+# img = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
+# th3 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_MEAN_C,\
+#             cv2.THRESH_BINARY,11,2)
+# cv2.imshow("SDF", th3)
 
-
-img = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
-th3 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
-            cv2.THRESH_BINARY,11,2)
-th2 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_MEAN_C,\
-            cv2.THRESH_BINARY,11,2)
 
 ret, thresh = cv2.threshold(mask, 200, 255, 0)
-im2, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-contours = [c for c in contours if cv2.contourArea(c) > 100]
+__, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+contours = [c for c in contours if cv2.contourArea(c) > 500 and cv2.contourArea(c) < 12000]
+
+cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
 
 for cnt in contours:
     x,y,w,h = cv2.boundingRect(cnt)
-    cv2.rectangle(th3,(x-5,y-5),(x+w+5,y+h+5),(0,255,0),2)
+    #cv2.rectangle(th3,(x-5,y-5),(x+w+5,y+h+5),(0,255,0),2)
+    cv2.imwrite(str(x+y) + ".png", mask[y:y+h,x-5:x+w+5])
 
-cv2.imshow("Hello", th3)
-cv2.imshow("K", th2)
-cropped = cv2.GaussianBlur(cropped, (5, 5), 0)
-cv2.imshow("Show",cropped)
+cv2.imshow("Hello", mask)
 
-cv2.drawContours(frame, [c], -1, (0, 255, 255), 2)
-cv2.circle(frame, extLeft, 8, (0, 0, 255), -1)
-cv2.circle(frame, extRight, 8, (0, 255, 0), -1)
-cv2.circle(frame, extTop, 8, (255, 0, 0), -1)
-cv2.circle(frame, extBot, 8, (255, 255, 0), -1)
+ret, thresh = cv2.threshold(imgThreshold, 200, 255, 0)
+__,contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+contours = [c for c in contours if cv2.contourArea(c) > 500]
 
-cv2.imshow("One Contour", frame)
+imgThreshold = cv2.bitwise_not(imgThreshold)
+cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
+for cnt in contours:
+    x,y,w,h = cv2.boundingRect(cnt)
+    #cv2.rectangle(th3,(x-5,y-5),(x+w+5,y+h+5),(0,255,0),2)
+    cv2.imwrite(str(x+y) + ".png", imgThreshold[y:y+h,x:x+w])
 
-cv2.drawContours(frame, [c2], -1, (0, 255, 255), 2)
-cv2.circle(frame, extLeft2, 8, (0, 0, 255), -1)
-cv2.circle(frame, extRight2, 8, (0, 255, 0), -1)
-cv2.circle(frame, extTop2, 8, (255, 0, 0), -1)
-cv2.circle(frame, extBot2, 8, (255, 255, 0), -1)
+# ret, thresh = cv2.threshold(th3, 70, 255, 0)
+# __,contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+# contours = [c for c in contours if cv2.contourArea(c) > 100]
+# cv2.drawContours(th3, contours,-1, (0,255,255), 3)
 
-print(type(extLeft2))
-# cv2.drawContours(frame,approx,-1,(0,255,0),3)
-# for cnt in contours:
-#     x,y,w,h = cv2.boundingRect(cnt)
-#     cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,0),2)
 
- 
-print(str(y) + " " + str(y2) + " " + str(x3)+ " " + str(x4))
-cv2.imshow("Sup", frame)
+cv2.imshow("final", imgThreshold)
+cv2.imshow("contours", cropped)
+
+
+# cv2.drawContours(frame, [c], -1, (0, 255, 255), 2)
+# cv2.circle(frame, extLeft, 8, (0, 0, 255), -1)
+# cv2.circle(frame, extRight, 8, (0, 255, 0), -1)
+# cv2.circle(frame, extTop, 8, (255, 0, 0), -1)
+# cv2.circle(frame, extBot, 8, (255, 255, 0), -1)
+
+# cv2.drawContours(frame, [c2], -1, (0, 255, 255), 2)
+# cv2.circle(frame, extLeft2, 8, (0, 0, 255), -1)
+# cv2.circle(frame, extRight2, 8, (0, 255, 0), -1)
+# cv2.circle(frame, extTop2, 8, (255, 0, 0), -1)
+# cv2.circle(frame, extBot2, 8, (255, 255, 0), -1)
+
+
+
+# cv2.imshow("Sup", frame)
+
+image = cv2.imread('./337.png')
+print(image.shape)
+img = cv2.resize(image, (100, 100))
+cv2.imshow("big", img)
+image = cv2.resize(image,(100,100))
+cv2.imshow("IMAGE", image)
+model = load_model('prototype7.h5')
+img_aug = np.expand_dims(image, axis=0)
+print(img_aug.shape)
+y_predict = model.predict(img_aug)[0]
+print(y_predict)
+plt.imshow(image)  
+caption = (str(y_predict))
+plt.text(0.5, 0.5, caption, 
+        color='orange', fontsize = 16,
+        horizontalalignment='left', verticalalignment='bottom')
 
 
 
