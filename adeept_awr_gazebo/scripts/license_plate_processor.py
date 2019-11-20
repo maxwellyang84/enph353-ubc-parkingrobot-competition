@@ -11,12 +11,14 @@ from keras.utils import plot_model
 from keras import backend
 from matplotlib import pyplot as plt
 
+MIN_ASPECT_RATIO = 0.3
+
 class license_plate_processor:
 
     def __init__(self, license_plate_pub):
         self.license_plate_image = None
         self.location_image = None
-        self.license_plate_model = load_model('prototype.h5')
+        self.license_plate_model = load_model('grayscale_less_blur.h5')
         self.license_plate_pub = license_plate_pub
         self.character_map = self.init_character_map()
 
@@ -118,7 +120,9 @@ class license_plate_processor:
     def split_characters(self, cropped):
         hsv = cv2.cvtColor(cropped, cv2.COLOR_BGR2HSV) 
         lower_red = np.array([110,50,50]) 
-        upper_red = np.array([130,255,255]) 
+        upper_red = np.array([130,255,255])
+
+        gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY) 
         
         # Here we are defining range of bluecolor in HSV 
         # This creates a mask of blue coloured  
@@ -133,7 +137,7 @@ class license_plate_processor:
         mask = cv2.bitwise_not(mask)
 
         lower_black = np.array([0,0,0])
-        upper_black = np.array([180,255,30])
+        upper_black = np.array([180,255,60])
         imgThreshold = cv2.inRange(hsv, lower_black, upper_black)
 
         ret, thresh = cv2.threshold(imgThreshold, 200, 255, 0)
@@ -146,25 +150,33 @@ class license_plate_processor:
         cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
         for cnt in contours:
             x,y,w,h = cv2.boundingRect(cnt)
-            plate_characters.append(imgThreshold[y:y+h, x-5, x+w+5])
+            plate_characters.append(gray[y:y+h, x-5, x+w+5])
+        
 
         ret, thresh = cv2.threshold(mask, 200, 255, 0)
         __, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contours = [c for c in contours if cv2.contourArea(c) > 500 and cv2.contourArea(c) < 12000]
 
-        for cnt in contours:
-            x,y,w,h = cv2.boundingRect(cnt)
-            plate_characters.append(mask[y:y+h, x-5, x+w+5])
-
+        for c in contours:
+            x,y,w,h = cv2.boundingRect(c)
+            #cv2.rectangle(img,(x-5,y-5),(x+w+5,y+h+5),(0,255,0),2)
+            aspect_ratio = float(h)/w
+            # print(aspect_ratio)
+            if aspect_ratio < MIN_ASPECT_RATIO:
+                plate_characters.append(gray[y:y+h, x: x+int(w/2)])
+                plate_characters.append(gray[y:y+h, x+int(w/2):x+w])
+            else:
+                plate_characters.append(gray[y:y+h,x:x+w])
         
         return plate_characters
 
     def neural_network(self, plate_characters):
         plate_string = ''
-        for index, characters in enumerate(plate_characters):
+        for index, character in enumerate(plate_characters):
+            character = cv2.resize(character,(64,64))
             if(index == 2):
                 plate_string = plate_string + "_"
-            img_aug = np.expand_dims(characters, axis=0)
+            img_aug = np.expand_dims(character, axis=0)
             y_predict = self.license_plate_model.predict(img_aug)[0]
             order = [i for i, j in enumerate(y_predict) if j == 1]
             plate_string = plate_string + order[0]
@@ -248,7 +260,8 @@ class license_plate_processor:
 
 
 
-
+if __name__ == '__main__':
+    
 
 
 # Want this to process to crop the license plate image using contours, then use contours to crop the license plate out of that
