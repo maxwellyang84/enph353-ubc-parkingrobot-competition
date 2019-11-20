@@ -31,6 +31,7 @@ class state_machine:
         self.last_err = 0
         self.last_pos = 0
         self.current_state = INITIALIZE
+        self.starting_time = time.time()
    
     def callback(self,data):
         try:
@@ -40,15 +41,18 @@ class state_machine:
         frame = state_machine.image_converter(cv_image) # crops 
         
         if self.current_state == INITIALIZE:
-            print("Hello world !")
-            self.speed_controller(0)
-            time.sleep(0.25)
-            self.speed_controller(500)
-            time.sleep(0.1)
-            print("BEGIN")
-            self.current_state = DRIVING
+            time_elapsed = time.time() - self.starting_time
+            if time_elapsed < 0.5:
+                self.speed_controller(0)
+                print("str8")
+            elif time_elapsed < 0.75:
+                self.speed_controller(500)
+                print("turn")
+            else:
+                print("ended")
+                self.current_state = DRIVING
 
-        elif self.current_state == DRIVING:
+        if self.current_state == DRIVING:
             #print("Driving")
             position = state_machine.get_position(frame, self.last_pos)
             self.last_pos = position
@@ -68,29 +72,22 @@ class state_machine:
         elif self.current_state == WATCHING:
             if self.watch(frame):
                 self.current_state = CROSS_THE_WALK
+                self.starting_time = time.time()
         
         elif self.current_state == CROSS_THE_WALK:
-            
-            # for i in range (40):
-            #     position = state_machine.get_position(frame, self.last_pos)
-            #     self.last_pos = position
-            #     self.speed_controller(position)
-            # print("back to regular")
-            # self.current_state = DRIVING
-            if self.check_crosswalk_end(frame): #if sees red then go back to driving normally
-                self.current_state = DRIVING
-                print("Back to driving...")
-            else:
-                #position = state_machine.get_position(frame, self.last_pos)
-                #self.last_pos = position
-                #self.speed_controller(position) #drive till you see red
-                self.speed_controller(0)
+            time_elapsed = time.time() - self.starting_time
+            if time_elapsed < 1:
+                position = state_machine.get_position(frame, self.last_pos)
+                self.last_pos = position
+                self.speed_controller(position)
+            print("back to regular")
+            self.current_state = DRIVING
 
         
         #      DEBUGGING TOOLS TO SEE BLACK AND WHITE
-        #cv.circle(frame, (READING_GAP, Y_READING_LEVEL), 15, (255,205,195), -1)
-        #cv.circle(frame, (NUM_PIXELS_X-READING_GAP,Y_READING_LEVEL), 15, (255,205,195), -1)        
-        #cv.circle(frame, (READING_GAP,Y_READ_PLATES), 15, (255,205,195), -1)       
+        cv.circle(frame, (READING_GAP, Y_READING_LEVEL), 15, (255,205,195), -1)
+        cv.circle(frame, (NUM_PIXELS_X-READING_GAP,Y_READING_LEVEL), 15, (255,205,195), -1)        
+        cv.circle(frame, (READING_GAP,Y_READ_PLATES), 15, (255,205,195), -1)       
         cv.circle(frame, (NUM_PIXELS_X/3,Y_READ_PED), 15, (255,205,195), -1)
         cv.circle(frame, (2*NUM_PIXELS_X/3,Y_READ_PED), 15, (255,205,195), -1)
     
@@ -148,7 +145,7 @@ class state_machine:
             if (val != 0):
                 red_pixels = red_pixels + 1
 
-        if (red_pixels > NUM_PIXELS_X/4):
+        if (red_pixels > NUM_PIXELS_X/5):
             return 1
         else:
             return 0 
@@ -166,7 +163,7 @@ class state_machine:
             if (val != 0):
                 red_pixels = red_pixels + 1
 
-        if (red_pixels > NUM_PIXELS_X/3):
+        if (red_pixels > NUM_PIXELS_X/4):
             return 1
         else:
             return 0
@@ -213,7 +210,7 @@ class state_machine:
             return 0
 
         else:
-            print("SAW WHITE")
+            #print("SAW WHITE")
             check_stripes = 0
             for i in range(2*READING_GAP):
                 if (((blue_mask[150,i] == 0) or (blue2_mask[150,i] == 0)) and check_stripes == 0): #first not blue
@@ -253,11 +250,11 @@ class state_machine:
         velocity.linear.x = 0
         self.vel_pub.publish(velocity)
 
-    def go(self, sec):
-        velocity = Twist()
-        velocity.linear.x = 1
-        self.vel_pub.publish(velocity)
-        time.sleep(sec)
+    # def go(self, sec):
+    #     velocity = Twist()
+    #     velocity.linear.x = 1
+    #     self.vel_pub.publish(velocity)
+    #     time.sleep(sec)
 
     def speed_controller(self, position):
         velocity = Twist()
