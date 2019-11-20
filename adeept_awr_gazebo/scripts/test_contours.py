@@ -13,6 +13,8 @@ from keras import optimizers
 from keras.utils import plot_model
 from keras import backend
 from matplotlib import pyplot as plt
+
+MIN_ASPECT_RATIO = 0.3
   
 # Webcamera no 0 is used to capture the frames 
 
@@ -198,7 +200,7 @@ cv2.imshow("Comparison", cropped)
 mask = cv2.bitwise_not(mask)
 cv2.imshow("bitwsie_not", mask)
 lower_black = np.array([0,0,0])
-upper_black = np.array([180,255,30])
+upper_black = np.array([180,255,60])
 imgThreshold = cv2.inRange(hsv, lower_black, upper_black)
 
 cv2.imshow('lol', imgThreshold)
@@ -214,12 +216,20 @@ ret, thresh = cv2.threshold(mask, 200, 255, 0)
 __, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 contours = [c for c in contours if cv2.contourArea(c) > 500 and cv2.contourArea(c) < 12000]
 
+gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
+
 cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
 
 for cnt in contours:
     x,y,w,h = cv2.boundingRect(cnt)
+    aspect_ratio = float(h)/w
+    if aspect_ratio < MIN_ASPECT_RATIO:
+        print(aspect_ratio)
+        cv2.imwrite(str(x+y+w/2) + ".png", gray[y:y+h, x: x+int(w/2)])
+        cv2.imwrite(str(x+y+w) + ".png", gray[y:y+h, x+int(w/2):x+w])
     #cv2.rectangle(th3,(x-5,y-5),(x+w+5,y+h+5),(0,255,0),2)
-    cv2.imwrite(str(x+y) + ".png", mask[y:y+h,x-5:x+w+5])
+    else:
+        cv2.imwrite(str(x+y) + ".png", gray[y:y+h,x-5:x+w+5])
 
 cv2.imshow("Hello", mask)
 
@@ -232,7 +242,7 @@ cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
 for cnt in contours:
     x,y,w,h = cv2.boundingRect(cnt)
     #cv2.rectangle(th3,(x-5,y-5),(x+w+5,y+h+5),(0,255,0),2)
-    cv2.imwrite(str(x+y) + ".png", imgThreshold[y:y+h,x:x+w])
+    cv2.imwrite(str(x+y) + ".png", gray[y:y+h,x:x+w])
 
 # ret, thresh = cv2.threshold(th3, 70, 255, 0)
 # __,contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -260,13 +270,13 @@ cv2.imshow("contours", cropped)
 
 # cv2.imshow("Sup", frame)
 
-image = cv2.imread('./337.png')
+image = cv2.imread('./294.png')
 print(image.shape)
 img = cv2.resize(image, (100, 100))
 cv2.imshow("big", img)
-image = cv2.resize(image,(100,100))
+image = cv2.resize(image,(64,64))
 cv2.imshow("IMAGE", image)
-model = load_model('prototype7.h5')
+model = load_model('grayscale_less_blur.h5')
 img_aug = np.expand_dims(image, axis=0)
 print(img_aug.shape)
 y_predict = model.predict(img_aug)[0]
