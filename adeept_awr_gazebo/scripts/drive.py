@@ -44,30 +44,24 @@ class state_machine:
             time_elapsed = time.time() - self.starting_time
             if time_elapsed < 0.5:
                 self.speed_controller(0)
-                print("str8")
             elif time_elapsed < 0.75:
                 self.speed_controller(500)
-                print("turn")
             else:
-                print("ended")
                 self.current_state = DRIVING
-
-        if self.current_state == DRIVING:
-            #print("Driving")
+        
+        elif self.current_state == DRIVING:
             position = state_machine.get_position(frame, self.last_pos)
             self.last_pos = position
             self.speed_controller(position)
-        
+            time_elapsed = time.time() - self.starting_time
+
             if self.check_crosswalk(frame):
                 self.stop()
                 self.current_state = WATCHING
                 print("Stop! Looking for pedestrians...")
-                #time.sleep(1)
-                #self.watch()
-            if self.check_blue_car(frame):
+            if self.check_blue_car(frame) and time_elapsed > 1:
+                self.starting_time = time.time()
                 print("License plate snapped")
-                #self.stop()
-                #time.sleep(1)
         
         elif self.current_state == WATCHING:
             if self.watch(frame):
@@ -76,12 +70,19 @@ class state_machine:
         
         elif self.current_state == CROSS_THE_WALK:
             time_elapsed = time.time() - self.starting_time
-            if time_elapsed < 1:
-                position = state_machine.get_position(frame, self.last_pos)
-                self.last_pos = position
-                self.speed_controller(position)
-            print("back to regular")
-            self.current_state = DRIVING
+            #print(time_elapsed)
+            if time_elapsed < 0.25:
+                self.speed_controller(0)
+            elif time_elapsed < 3:
+                if self.check_crosswalk(frame):
+                    self.speed_controller(0)
+                else:
+                    position = state_machine.get_position(frame, self.last_pos)
+                    self.last_pos = position
+                    self.speed_controller(position)
+            else:
+                print("Back to driving state...")
+                self.current_state = DRIVING
 
         
         #      DEBUGGING TOOLS TO SEE BLACK AND WHITE
@@ -92,7 +93,7 @@ class state_machine:
         cv.circle(frame, (2*NUM_PIXELS_X/3,Y_READ_PED), 15, (255,205,195), -1)
     
         # light_test = (20, 20, 20)
-        # dark_test = (70, 70, 70)
+        # dark_test = (110, 70, 70)
         # frame = cv.inRange(frame, light_test, dark_test) #road is white and majority of other stuff is black
         cv.imshow("Robot", frame)
         cv.waitKey(3) 
@@ -163,7 +164,7 @@ class state_machine:
             if (val != 0):
                 red_pixels = red_pixels + 1
 
-        if (red_pixels > NUM_PIXELS_X/4):
+        if (red_pixels > NUM_PIXELS_X/5):  #num_pixels/4
             return 1
         else:
             return 0
@@ -231,7 +232,7 @@ class state_machine:
     def watch(self, frame):  #y pixel at 85 is where we wanna look to see movement
         #Y_READ_PED = 90             (NUM_PIXELS_X/3,Y_READ_PED)
         light_jeans = (20, 20, 20)
-        dark_jeans = (70, 70, 70)
+        dark_jeans = (110, 70, 70)
         jeans_mask = cv.inRange(frame, light_jeans, dark_jeans) #road is white and majority of other stuff is black
         jean_pixels = 0
 
