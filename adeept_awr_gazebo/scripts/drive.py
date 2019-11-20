@@ -141,7 +141,7 @@ class state_machine:
                  white_pixels = white_pixels + 1
         print("Num:" + " " +  str(white_pixels))
         
-        if (white_pixels < READING_GAP/4): #READING_GAP/3
+        if (white_pixels < 50): #READING_GAP/4
             return 0
 
         if ((blue_mask[150,0] != 0) or (blue2_mask[150,0] != 0)): #make sure edge isnt blue
