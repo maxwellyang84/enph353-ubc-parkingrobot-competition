@@ -24,6 +24,7 @@ class robot_control:
         self.image_sub = rospy.Subscriber('/R1/pi_camera/image_raw', Image, self.callback)
         self.vel_pub = rospy.Publisher("/R1/cmd_vel", Twist, queue_size=30)
         self.license_plate_pub = rospy.Publisher("/license_plate topic", std_msgs.msg.String, queue_size=30)
+        self.image_pub = rospy.Publisher('/license_plate_processor', Image, queue_size=30)
         self.bridge = CvBridge()
         self.last_err = 0
 

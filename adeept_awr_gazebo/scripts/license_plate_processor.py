@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import cv2 
 import numpy as np  
 import imutils
@@ -11,16 +13,25 @@ from keras.utils import plot_model
 from keras import backend
 from matplotlib import pyplot as plt
 
+import rospy
+import sys
+from cv_bridge import CvBridge, CvBridgeError
+from sensor_msgs.msg import Image
+from geometry_msgs.msg import Twist
+from std_msgs.msg import String
+
 MIN_ASPECT_RATIO = 0.3
 
 class license_plate_processor:
 
-    def __init__(self, license_plate_pub):
+    def __init__(self):
         self.license_plate_image = None
         self.location_image = None
         self.license_plate_model = load_model('grayscale_less_blur.h5')
-        self.license_plate_pub = license_plate_pub
+        #self.license_plate_pub = rospy.Publisher("/license_plate topic", std_msgs.msg.String, queue_size=30)
+        #self.image_sub = rospy.Subscriber('image_processor', Image, self.callback)
         self.character_map = self.init_character_map()
+        self.bridge = CvBridge()
 
     def init_character_map(self):
         self.character_map = {}
@@ -31,7 +42,7 @@ class license_plate_processor:
         return self.character_map
         
     def image_cropper(self, image):
-        image = image[750:,0:1279]
+        #image = image[750:,0:1279]
         # Converts images from BGR to HSV 
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV) 
         
@@ -59,8 +70,12 @@ class license_plate_processor:
             cv2.CHAIN_APPROX_SIMPLE)  
         cnts = imutils.grab_contours(cnts)
         cnts = [c for c in cnts if cv2.contourArea(c) > 1000] #filter out small contours
-        left_blue_contour = cnts[0]
-        right_blue_contour = cnts[1]
+        left_blue_contour = cnts[-1]
+        right_blue_contour = cnts[-2]
+        if cv2.contourArea(left_blue_contour) > cv2.contourArea(right_blue_contour):
+            left_blue_contour = cnts[-2]
+            right_blue_contour = cnts[-1]
+        #cv2.drawContours(image, cnts,-1, (0,255,255), 3)
 
         # determine the most extreme points along the contour
         extLeft = tuple(left_blue_contour[left_blue_contour[:, :, 0].argmin()][0])
@@ -78,7 +93,7 @@ class license_plate_processor:
         x3,y3 = extRight
         x4,y4 = extLeft2 
 
-        cropped = image[y+20: y2+ 20, x3:x4] #get license_plate image
+        cropped = image[y+50: y2+ 20, x3-15:x4]
 
         #perspective transform for license_plate image
         height, width, channels = cropped.shape
@@ -113,8 +128,11 @@ class license_plate_processor:
         extTop = tuple(c[c[:, :, 1].argmin()][0])
         extBot = tuple(c[c[:, :, 1].argmax()][0])
 
+        x,y = extRight
+        x2,y2 = extLeft
+
         #creates perspective transformed license plate
-        cropped = license_plate_processor.four_point_transform(cropped, np.array([(0,0),(width-30,0),extRight, extBot]))
+        cropped = license_plate_processor.four_point_transform(cropped, np.array([(0,0),(width,0),extRight, (x2, y)]))
         return cropped
     
     def split_characters(self, cropped):
@@ -142,7 +160,7 @@ class license_plate_processor:
 
         ret, thresh = cv2.threshold(imgThreshold, 200, 255, 0)
         __,contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        contours = [c for c in contours if cv2.contourArea(c) > 500]
+        contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 8000]
 
         plate_characters = []
 
@@ -155,7 +173,7 @@ class license_plate_processor:
 
         ret, thresh = cv2.threshold(mask, 200, 255, 0)
         __, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        contours = [c for c in contours if cv2.contourArea(c) > 500 and cv2.contourArea(c) < 12000]
+        contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 8000]
 
         for c in contours:
             x,y,w,h = cv2.boundingRect(c)
@@ -184,13 +202,23 @@ class license_plate_processor:
         return plate_string
     
     def publish_license_plates(self, plate_string):
-        self.license_plate_pub.publish(plate_string)
+        #self.license_plate_pub.publish(plate_string)
+        pass
 
-    def license_plate_model_process(self, image):
+    def callback(self, image):
+        # try:
+        #     image = self.bridge.imgmsg_to_cv2(data, "bgr8") # gets from camera
+        # except CvBridgeError as e:
+        #     print(e)
+        print("SUP")
         license_plate_image = self.image_cropper(image)
+        print("LOL")
         plate_characters = self.split_characters(license_plate_image)
+        print("MM")
         plate_string = self.neural_network(plate_characters)
-        self.publish_license_plates(plate_string)
+        print("FA")
+        #self.publish_license_plates(plate_string)
+        print(plate_string)
     
     def location_model_process(self):
         pass
@@ -260,10 +288,21 @@ class license_plate_processor:
 
 
 
-if __name__ == '__main__':
+def main(args):
+    print("SUP")
+    rospy.init_node('license_plate_processor', anonymous=True)
+    lpp = license_plate_processor()
+    print("k")
     
+    try:
+        rospy.spin()
+    except KeyboardInterrupt:
+        print("Shutting Down")
+    cv2.destroyAllWindows
 
 
+if __name__ == '__main__':
+    main(sys.argv)
 # Want this to process to crop the license plate image using contours, then use contours to crop the license plate out of that
 # image, then you want to apply the learning model onto the license plate and for each index, create a map associated with each
 # character

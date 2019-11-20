@@ -6,6 +6,8 @@ from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 import rospy
 import time
+from random import randint
+from license_plate_processor import license_plate_processor
 
 KP = 0.001
 KD = 0.0005
@@ -27,18 +29,19 @@ class state_machine:
     def __init__(self):
         self.image_sub = rospy.Subscriber('/R1/pi_camera/image_raw', Image, self.callback)
         self.vel_pub = rospy.Publisher("/R1/cmd_vel", Twist, queue_size=30)
+        self.image_pub = rospy.Publisher('license_plate_processor', Image, queue_size=30)
         self.bridge = CvBridge()
         self.last_err = 0
         self.last_pos = 0
         self.current_state = INITIALIZE
-   
+        self.lpp = license_plate_processor()
+    
     def callback(self,data):
         try:
             cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") # gets from camera
         except CvBridgeError as e:
             print(e)
         frame = state_machine.image_converter(cv_image) # crops 
-        
         if self.current_state == INITIALIZE:
             print("Hello world !")
             self.speed_controller(0)
@@ -62,6 +65,12 @@ class state_machine:
                 #self.watch()
             if self.check_blue_car(frame):
                 print("License plate snapped")
+                cv.imshow("Frame", frame)
+                # img_msg = self.bridge.cv2_to_imgmsg(frame)
+                # self.image_pub.publish(img_msg)
+                self.stop()
+                cv.imwrite(str(randint(0,10000)) + ".png", frame)
+                self.lpp.callback(frame)
                 #self.stop()
                 #time.sleep(1)
         
@@ -97,7 +106,7 @@ class state_machine:
         # light_test = (20, 20, 20)
         # dark_test = (70, 70, 70)
         # frame = cv.inRange(frame, light_test, dark_test) #road is white and majority of other stuff is black
-        cv.imshow("Robot", frame)
+        #cv.imshow("Robot", frame)
         cv.waitKey(3) 
 
 
