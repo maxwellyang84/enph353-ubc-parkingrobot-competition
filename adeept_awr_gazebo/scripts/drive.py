@@ -14,6 +14,13 @@ NUM_PIXELS_Y = 379
 READING_GAP = 215 #205
 Y_READING_LEVEL = 345
 Y_READ_PLATES = 230 #270
+Y_READ_PED = 90 
+
+### STATES ### 
+INITIALIZE = -1
+DRIVING = 0
+WATCHING = 1
+CROSS_THE_WALK = 2
 
 class state_machine:
 
@@ -23,41 +30,73 @@ class state_machine:
         self.bridge = CvBridge()
         self.last_err = 0
         self.last_pos = 0
+        self.current_state = INITIALIZE
    
     def callback(self,data):
         try:
             cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") # gets from camera
         except CvBridgeError as e:
             print(e)
-        
         frame = state_machine.image_converter(cv_image) # crops 
         
-        position = state_machine.get_position(frame, self.last_pos)
-        self.last_pos = position
-        self.speed_controller(position)
+        if self.current_state == INITIALIZE:
+            print("Hello world !")
+            self.speed_controller(0)
+            time.sleep(0.25)
+            self.speed_controller(500)
+            time.sleep(0.1)
+            print("BEGIN")
+            self.current_state = DRIVING
+
+        elif self.current_state == DRIVING:
+            #print("Driving")
+            position = state_machine.get_position(frame, self.last_pos)
+            self.last_pos = position
+            self.speed_controller(position)
         
-        if (self.check_crosswalk(frame)):
-        #    self.stop()
-            print("Stopped!")
-            #self.watch()
-        if (self.check_blue_car(frame)):
-            self.stop()
-            time.sleep(1)
-            self.go(0.1)
+            if self.check_crosswalk(frame):
+                self.stop()
+                self.current_state = WATCHING
+                print("Stop! Looking for pedestrians...")
+                #time.sleep(1)
+                #self.watch()
+            if self.check_blue_car(frame):
+                print("License plate snapped")
+                #self.stop()
+                #time.sleep(1)
+        
+        elif self.current_state == WATCHING:
+            if self.watch(frame):
+                self.current_state = CROSS_THE_WALK
+        
+        elif self.current_state == CROSS_THE_WALK:
+            
+            # for i in range (40):
+            #     position = state_machine.get_position(frame, self.last_pos)
+            #     self.last_pos = position
+            #     self.speed_controller(position)
+            # print("back to regular")
+            # self.current_state = DRIVING
+            if self.check_crosswalk_end(frame): #if sees red then go back to driving normally
+                self.current_state = DRIVING
+                print("Back to driving...")
+            else:
+                #position = state_machine.get_position(frame, self.last_pos)
+                #self.last_pos = position
+                #self.speed_controller(position) #drive till you see red
+                self.speed_controller(0)
 
         
         #      DEBUGGING TOOLS TO SEE BLACK AND WHITE
-        #light_grey = (70, 70, 70)
-        #dark_grey = (135, 135, 135)
-        #frame = cv.inRange(frame, light_grey, dark_grey) #road is white and majority of other stuff is black
-        #frame = cv.cvtColor(frame, cv.COLOR_GRAY2BGR)
-        cv.circle(frame, (READING_GAP, Y_READING_LEVEL), 15, (255,205,195), -1)
-        cv.circle(frame, (NUM_PIXELS_X-READING_GAP,Y_READING_LEVEL), 15, (255,205,195), -1)        
-        cv.circle(frame, (READING_GAP,Y_READ_PLATES), 15, (255,205,195), -1)
-
-        #light_test = (245, 245, 245)
-        #dark_test = (255, 255, 255)
-        #frame = cv.inRange(frame, light_test, dark_test) #road is white and majority of other stuff is black
+        #cv.circle(frame, (READING_GAP, Y_READING_LEVEL), 15, (255,205,195), -1)
+        #cv.circle(frame, (NUM_PIXELS_X-READING_GAP,Y_READING_LEVEL), 15, (255,205,195), -1)        
+        #cv.circle(frame, (READING_GAP,Y_READ_PLATES), 15, (255,205,195), -1)       
+        cv.circle(frame, (NUM_PIXELS_X/3,Y_READ_PED), 15, (255,205,195), -1)
+        cv.circle(frame, (2*NUM_PIXELS_X/3,Y_READ_PED), 15, (255,205,195), -1)
+    
+        # light_test = (20, 20, 20)
+        # dark_test = (70, 70, 70)
+        # frame = cv.inRange(frame, light_test, dark_test) #road is white and majority of other stuff is black
         cv.imshow("Robot", frame)
         cv.waitKey(3) 
 
@@ -81,7 +120,6 @@ class state_machine:
         if (pixel_count != 0):
             weighted_sum = weighted_sum/pixel_count
             pos = NUM_PIXELS_X/2-weighted_sum-1
-            #print(pos)
             return pos #if positive, turn left
         else:
             if (last_pos > 0):
@@ -90,16 +128,31 @@ class state_machine:
                 pos = -500
             else:
                 pos = 0
-            #print(pos)
             return pos
         
-        #count grey from: x:200 1150 , y: 345
-
     @staticmethod
     def image_converter(cv_image):
         #cropping irrelevant pixels out: x:0,1278 ; y:0,378 (0 at top)
         return cv_image[340:719,0:1279]
-    
+
+    @staticmethod
+    def check_crosswalk_end(frame):
+        light_red = (0, 0, 245) # BGR
+        dark_red = (10, 10, 255)
+        red_pixels = 0
+
+        check_frame = cv.inRange(frame, light_red, dark_red) #only red appears, all else black
+        
+        for i in range(NUM_PIXELS_X-1): #length of pixels we wanna look at
+            val = check_frame[NUM_PIXELS_Y-1,i] # Y_READING_LEVEL
+            if (val != 0):
+                red_pixels = red_pixels + 1
+
+        if (red_pixels > NUM_PIXELS_X/4):
+            return 1
+        else:
+            return 0 
+
     @staticmethod
     def check_crosswalk(frame):
         light_red = (0, 0, 245) # BGR
@@ -109,7 +162,7 @@ class state_machine:
         check_frame = cv.inRange(frame, light_red, dark_red) #only red appears, all else black
         
         for i in range(NUM_PIXELS_X-2*READING_GAP): #length of pixels we wanna look at
-            val = check_frame[Y_READING_LEVEL,i+READING_GAP]
+            val = check_frame[NUM_PIXELS_Y-1,i+READING_GAP] # Y_READING_LEVEL
             if (val != 0):
                 red_pixels = red_pixels + 1
 
@@ -118,6 +171,18 @@ class state_machine:
         else:
             return 0
         #when seeing red go till zebra, 5 white strips in grey road (not including white border)
+
+
+    # def adjust_crosswalk(frame):
+    #     light_red = (0, 0, 245) # BGR
+    #     dark_red = (10, 10, 255)
+    #     red_pixels = 0
+
+    #     check_frame = cv.inRange(frame, light_red, dark_red) #only red appears, all else black
+        
+    #     if check_frame[NUM_PIXELS_Y-1,NUM_PIXELS_X/3] != 0 and check_frame[NUM_PIXELS_Y-1,2*NUM_PIXELS_X/3] != 0:
+    #         return 1 # in line
+    #     elif check_frame[NUM_PIXELS_Y-1,NUM_PIXELS_X/3] == 0:
 
     @staticmethod
     def check_blue_car(frame):
@@ -139,16 +204,16 @@ class state_machine:
         for i in range(READING_GAP): #ReadGap
              if (white_mask[Y_READ_PLATES,i] != 0):
                  white_pixels = white_pixels + 1
-        print("Num:" + " " +  str(white_pixels))
+        #print("Num:" + " " +  str(white_pixels))
         
-        if (white_pixels < READING_GAP/4): #READING_GAP/3
+        if (white_pixels < 50): #READING_GAP/4
             return 0
 
         if ((blue_mask[150,0] != 0) or (blue2_mask[150,0] != 0)): #make sure edge isnt blue
             return 0
 
         else:
-            print("SAW WHITE, 2/3")
+            print("SAW WHITE")
             check_stripes = 0
             for i in range(2*READING_GAP):
                 if (((blue_mask[150,i] == 0) or (blue2_mask[150,i] == 0)) and check_stripes == 0): #first not blue
@@ -161,43 +226,27 @@ class state_machine:
                     check_stripes = 4
                 
                 if (check_stripes == 4):
-                    print("passed stripes test")
+                    #print("passed stripes test")
                     return 1
             return 0
-            # for i in range(READING_GAP):
-            #     if (blue_mask[150,i] != 0):
-            #         print("Sign TYPE 1!")
-            #         return 1
-            #     if (blue2_mask[150,i] != 0):
-            #         print("Sign TYPE 2!")
-            #         return 2        
-        
-        #for i in range(NUM_PIXELS_Y): #length of pixels we wanna look at
-        #    val = blue_mask[i,0]    # checking all values on left edge of screen
-        #    if (val != 0):
-        #        blue_pixels = blue_pixels + 1
-        
-        #if (blue_pixels < 100): #we expect that on average there should be 150 blue pixels
-        #    return 0
-        #else:
-        #    for i in range(NUM_PIXELS_Y):
-        #        if (white_mask[150,i] != 0):
-        #            white_side_pixels = white_side_pixels + 1
-           
-        #if (white_side_pixels > 5):
-        #    return 1
-        #else:
-        #    return 0
 
-    #def watch(self):  #y pixel at 85 is where we wanna look to see movement
-    #    for i in range(500):
-    #        try:
-    #            cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8") # gets from camera
-    #        except CvBridgeError as e:
-    #            print(e)
-    #     
-    #        #offset = 0
-    #        frame = state_machine.image_converter(cv_image) # crops 
+
+    def watch(self, frame):  #y pixel at 85 is where we wanna look to see movement
+        #Y_READ_PED = 90             (NUM_PIXELS_X/3,Y_READ_PED)
+        light_jeans = (20, 20, 20)
+        dark_jeans = (70, 70, 70)
+        jeans_mask = cv.inRange(frame, light_jeans, dark_jeans) #road is white and majority of other stuff is black
+        jean_pixels = 0
+
+        for i in range(NUM_PIXELS_X/6): #we want 10 pixels
+            if jeans_mask[Y_READ_PED, NUM_PIXELS_X/6+i] != 0:
+                jean_pixels = jean_pixels + 1
+
+        if jean_pixels > 10:
+            print("hes on the left!!! go")
+            return 1
+        else:
+            return 0
 
     def stop(self):
         velocity = Twist()
