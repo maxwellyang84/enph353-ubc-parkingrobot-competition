@@ -19,8 +19,9 @@ from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
+from random import randint
 
-MIN_ASPECT_RATIO = 0.3
+MIN_ASPECT_RATIO = 0.45
 
 class license_plate_processor:
 
@@ -28,6 +29,7 @@ class license_plate_processor:
         self.license_plate_image = None
         self.location_image = None
         self.license_plate_model = load_model('grayscale_less_blur.h5')
+        self.license_plate_model._make_predict_function()
         #self.license_plate_pub = rospy.Publisher("/license_plate topic", std_msgs.msg.String, queue_size=30)
         #self.image_sub = rospy.Subscriber('image_processor', Image, self.callback)
         self.character_map = self.init_character_map()
@@ -40,7 +42,11 @@ class license_plate_processor:
         for i in range(10, 36):
             self.character_map[i] = str(chr(i+55))
         return self.character_map
-        
+
+    def get_contour_coords(self, contour):
+        x,y,w,h = cv2.boundingRect(contour)
+        return x
+  
     def image_cropper(self, image):
         #image = image[750:,0:1279]
         # Converts images from BGR to HSV 
@@ -158,46 +164,72 @@ class license_plate_processor:
         upper_black = np.array([180,255,60])
         imgThreshold = cv2.inRange(hsv, lower_black, upper_black)
 
-        ret, thresh = cv2.threshold(imgThreshold, 200, 255, 0)
-        __,contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 8000]
+    
+        
+        gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
+
+        #cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
 
         plate_characters = []
 
+        
+
+        ret, thresh = cv2.threshold(imgThreshold, 200, 255, 0)
+        __,contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 6000]
+
+        contours.sort(key=self.get_contour_coords)
+
         imgThreshold = cv2.bitwise_not(imgThreshold)
         cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
+
         for cnt in contours:
             x,y,w,h = cv2.boundingRect(cnt)
-            plate_characters.append(gray[y:y+h, x-5, x+w+5])
-        
+            #cv2.rectangle(th3,(x-5,y-5),(x+w+5,y+h+5),(0,255,0),2)
+            plate_characters.append(gray[y:y+h,x:x+w])
 
         ret, thresh = cv2.threshold(mask, 200, 255, 0)
         __, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 8000]
+        print(cv2.contourArea(contours[0]))
+        contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 6000]
+        
+        contours.sort(key=self.get_contour_coords)
 
-        for c in contours:
-            x,y,w,h = cv2.boundingRect(c)
-            #cv2.rectangle(img,(x-5,y-5),(x+w+5,y+h+5),(0,255,0),2)
+        for cnt in contours:
+            x,y,w,h = cv2.boundingRect(cnt)
             aspect_ratio = float(h)/w
-            # print(aspect_ratio)
+            print(aspect_ratio)
             if aspect_ratio < MIN_ASPECT_RATIO:
                 plate_characters.append(gray[y:y+h, x: x+int(w/2)])
                 plate_characters.append(gray[y:y+h, x+int(w/2):x+w])
+            #cv2.rectangle(th3,(x-5,y-5),(x+w+5,y+h+5),(0,255,0),2)
             else:
                 plate_characters.append(gray[y:y+h,x:x+w])
+
         
+        cv2.imshow("Hello", mask)
+
+        # imgThreshold = imgThreshold[50:, :]
+        cv2.imshow("SAA", imgThreshold)
+       
+        # plate_characters.reverse()
         return plate_characters
 
     def neural_network(self, plate_characters):
+        #print(len(plate_characters))
         plate_string = ''
         for index, character in enumerate(plate_characters):
             character = cv2.resize(character,(64,64))
+            
+            character = cv2.cvtColor(character, cv2.COLOR_GRAY2BGR)
+            #cv2.imwrite(str(randint(0,1000)) + ".png", character)
             if(index == 2):
                 plate_string = plate_string + "_"
             img_aug = np.expand_dims(character, axis=0)
             y_predict = self.license_plate_model.predict(img_aug)[0]
-            order = [i for i, j in enumerate(y_predict) if j == 1]
-            plate_string = plate_string + order[0]
+            order = [i for i, j in enumerate(y_predict) if j > 0.5]
+            print(order)
+            plate_string = plate_string + str(self.character_map[order[0]])
         
         return plate_string
     
