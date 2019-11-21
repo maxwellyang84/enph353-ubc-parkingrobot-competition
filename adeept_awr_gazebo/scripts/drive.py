@@ -34,9 +34,10 @@ class state_machine:
         self.last_err = 0
         self.last_pos = 0
         self.current_state = INITIALIZE
+        self.starting_time = time.time()
         self.lpp = license_plate_processor()
     
-        self.starting_time = time.time()
+        
    
     def callback(self,data):
         try:
