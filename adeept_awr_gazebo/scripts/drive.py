@@ -72,7 +72,7 @@ class state_machine:
                 # img_msg = self.bridge.cv2_to_imgmsg(frame)
                 # self.image_pub.publish(img_msg)
                 self.stop()
-                cv.imwrite(str(randint(0,10000)) + ".png", frame)
+                cv.imwrite(str("./license_plates/" + randint(0,10000)) + ".png", frame)
                 self.lpp.callback(frame)
                 #self.stop()
                 #time.sleep(1)
