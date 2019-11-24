@@ -25,46 +25,54 @@ from random import randint
 
 MIN_ASPECT_RATIO = 0.45
 
-config = tf.ConfigProto(
-    device_count={'GPU': 1},
-    intra_op_parallelism_threads=1,
-    allow_soft_placement=True
-)
+# config = tf.ConfigProto(
+#     device_count={'GPU': 1},
+#     intra_op_parallelism_threads=1,
+#     allow_soft_placement=True
+# )
 
-config.gpu_options.allow_growth = True
-config.gpu_options.per_process_gpu_memory_fraction = 0.6
+# config.gpu_options.allow_growth = True
+# config.gpu_options.per_process_gpu_memory_fraction = 0.6
 
 class license_plate_processor:
 
     def __init__(self):
         self.license_plate_image = None
         self.location_image = None
-        self.license_plate_number_model = load_model('number_neural_network3.h5')
+        self.license_plate_number_model = load_model('number_neural_network4.h5')
         self.license_plate_number_model._make_predict_function()
-        self.license_plate_letter_model = load_model('letter_neural_network3.h5')
+        self.license_plate_letter_model = load_model('letter_neural_network4.h5')
         self.license_plate_letter_model._make_predict_function()
+        self.license_plate_location_model = load_model('location_model.h5')
+        self.license_plate_location_model._make_predict_function()
 
         self.license_plate_pub = rospy.Publisher("/license_plate", String, queue_size=30)
-        self.session = tf.Session(config=config)
+        # self.session = tf.Session(config=config)
 
-        keras.backend.set_session(self.session)
+        # keras.backend.set_session(self.session)
         self.character_map = self.init_character_map()
         self.number_map = self.init_number_map()
+        self.location_map = self.init_location_map()
+
         self.bridge = CvBridge()
 
     def init_character_map(self):
         self.character_map = {}
         for i in range(0, 26):
             self.character_map[i] = str(chr(i+65))
-        print(self.character_map)
         return self.character_map
     
     def init_number_map(self):
         self.number_map = {}
         for i in range(0,10):
             self.number_map[i] = str(i)
-        print(self.number_map)
         return self.number_map
+    
+    def init_location_map(self):
+        self.location_map = {}
+        for i in range (1,9):
+            self.location_map[i-1] = str(i)
+        return self.location_map
 
     def get_contour_coords(self, contour):
         x,y,w,h = cv2.boundingRect(contour)
@@ -190,7 +198,7 @@ class license_plate_processor:
 
         ret, thresh = cv2.threshold(imgThreshold, 200, 255, 0)
         __,contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 6000]
+        contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 5000]
 
         contours.sort(key=self.get_contour_coords)
 
@@ -204,15 +212,15 @@ class license_plate_processor:
 
         ret, thresh = cv2.threshold(mask, 200, 255, 0)
         __, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        print(cv2.contourArea(contours[0]))
-        contours = [c for c in contours if cv2.contourArea(c) > 50 and cv2.contourArea(c) < 6000]
+        #print(cv2.contourArea(contours[0]))
+        contours = [c for c in contours if cv2.contourArea(c) > 50 and cv2.contourArea(c) < 5000]
         
         contours.sort(key=self.get_contour_coords)
 
         for cnt in contours:
             x,y,w,h = cv2.boundingRect(cnt)
             aspect_ratio = float(h)/w
-            print(aspect_ratio)
+            #print(aspect_ratio)
             if aspect_ratio < MIN_ASPECT_RATIO:
                 plate_characters.append(gray[y:y+h, x: x+int(w/2)])
                 plate_characters.append(gray[y:y+h, x+int(w/2):x+w])
@@ -234,27 +242,29 @@ class license_plate_processor:
         plate_string = ''
         for index, character in enumerate(plate_characters):
             character = cv2.resize(character,(64,64))
-            
+            if index == 0:
+                continue
             character = cv2.cvtColor(character, cv2.COLOR_GRAY2BGR)
             #cv2.imwrite(str(randint(0,1000)) + ".png", character)
-            if index == 0:
-                pass
             if(index == 2):
                 plate_string = plate_string + ","
             img_aug = np.expand_dims(character, axis=0)
-            with self.session.as_default():
-                with self.session.graph.as_default():
-                    if index == 1 or index == 4 or index == 5:
-                        y_predict = self.license_plate_number_model.predict(img_aug)[0]
-                        order = [i for i, j in enumerate(y_predict) if j > 0.5]
-                        print(order)
-                        plate_string = plate_string + str(self.number_map[order[0]])
-                    else:
-                        y_predict = self.license_plate_letter_model.predict(img_aug)[0]
-                        order = [i for i, j in enumerate(y_predict) if j > 0.5]
-                        print(order)
-                        plate_string = plate_string + str(self.character_map[order[0]])
-        plate_string = "D1,Richardsucks," + plate_string
+            if index == 4 or index == 5:
+                y_predict = self.license_plate_number_model.predict(img_aug)[0]
+                order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                 #print(order)
+                plate_string = plate_string + str(self.number_map[order[0]])
+            elif index == 1:
+                y_predict = self.license_plate_location_model.predict(img_aug)[0]
+                order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                print(order)
+                plate_string = plate_string + str(self.location_map[order[0]])
+            else:
+                y_predict = self.license_plate_letter_model.predict(img_aug)[0]
+                order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                #print(order)
+                plate_string = plate_string + str(self.character_map[order[0]])
+        plate_string = "Maxwell Carried ,Richard Sucks," + plate_string
         return plate_string
     
     def publish_license_plates(self, plate_string):

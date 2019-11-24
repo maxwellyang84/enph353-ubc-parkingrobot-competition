@@ -82,7 +82,7 @@ def order_points(pts):
 # This drives the program into an infinite loop. 
 
     # Captures the live stream frame-by-frame 
-frame = cv2.imread('./7140.png')
+frame = cv2.imread('./license_plates/7677.png')
 # frame = cv2.medianBlur(frame,5)
 #frame = frame[750:,0:1279]
     # Converts images from BGR to HSV 
@@ -250,7 +250,7 @@ cv2.imshow('lol', imgThreshold)
 ret, thresh = cv2.threshold(mask, 200, 255, 0)
 __, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 print(cv2.contourArea(contours[0]))
-contours = [c for c in contours if cv2.contourArea(c) > 50 and cv2.contourArea(c) < 6000]
+contours = [c for c in contours if cv2.contourArea(c) > 50 and cv2.contourArea(c) < 5000]
 
 gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
 
@@ -274,7 +274,7 @@ cv2.imshow("Hello", mask)
 cv2.imshow("SAA", imgThreshold)
 ret, thresh = cv2.threshold(imgThreshold, 200, 255, 0)
 __,contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 6000]
+contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 5000]
 
 imgThreshold = cv2.bitwise_not(imgThreshold)
 cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
@@ -309,13 +309,13 @@ cv2.imshow("contours", cropped)
 
 # cv2.imshow("Sup", frame)
 
-image = cv2.imread('./15.png')
+image = cv2.imread('./112.png')
 print(image.shape)
 img = cv2.resize(image, (100, 100))
 cv2.imshow("big", img)
 image = cv2.resize(image,(64,64))
 cv2.imshow("IMAGE", image)
-model = load_model('letter_neural_network3.h5')
+model = load_model('number_neural_network3.h5')
 img_aug = np.expand_dims(image, axis=0)
 print(img_aug.shape)
 y_predict = model.predict(img_aug)[0]
