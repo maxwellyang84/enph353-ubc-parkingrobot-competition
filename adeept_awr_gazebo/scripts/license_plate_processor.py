@@ -241,25 +241,29 @@ class license_plate_processor:
         #print(len(plate_characters))
         plate_string = ''
         for index, character in enumerate(plate_characters):
-            character = cv2.resize(character,(64,64))
             if index == 0:
                 continue
             character = cv2.cvtColor(character, cv2.COLOR_GRAY2BGR)
             #cv2.imwrite(str(randint(0,1000)) + ".png", character)
             if(index == 2):
                 plate_string = plate_string + ","
-            img_aug = np.expand_dims(character, axis=0)
             if index == 4 or index == 5:
+                character = cv2.resize(character,(64,64))
+                img_aug = np.expand_dims(character, axis=0)
                 y_predict = self.license_plate_number_model.predict(img_aug)[0]
                 order = [i for i, j in enumerate(y_predict) if j > 0.5]
                  #print(order)
                 plate_string = plate_string + str(self.number_map[order[0]])
             elif index == 1:
+                character = cv2.resize(character,(64,64))
+                img_aug = np.expand_dims(character, axis=0)
                 y_predict = self.license_plate_location_model.predict(img_aug)[0]
                 order = [i for i, j in enumerate(y_predict) if j > 0.5]
                 print(order)
                 plate_string = plate_string + str(self.location_map[order[0]])
             else:
+                character = cv2.resize(character,(64,64))
+                img_aug = np.expand_dims(character, axis=0)
                 y_predict = self.license_plate_letter_model.predict(img_aug)[0]
                 order = [i for i, j in enumerate(y_predict) if j > 0.5]
                 #print(order)
