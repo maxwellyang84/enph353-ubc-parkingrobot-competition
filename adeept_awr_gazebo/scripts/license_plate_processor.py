@@ -9,6 +9,8 @@ from keras import layers
 from keras import models
 from keras import optimizers
 
+import tensorflow as tf
+
 from keras.utils import plot_model
 from keras import backend
 from matplotlib import pyplot as plt
@@ -23,6 +25,15 @@ from random import randint
 
 MIN_ASPECT_RATIO = 0.45
 
+config = tf.ConfigProto(
+    device_count={'GPU': 1},
+    intra_op_parallelism_threads=1,
+    allow_soft_placement=True
+)
+
+config.gpu_options.allow_growth = True
+config.gpu_options.per_process_gpu_memory_fraction = 0.6
+
 class license_plate_processor:
 
     def __init__(self):
@@ -34,6 +45,9 @@ class license_plate_processor:
         self.license_plate_letter_model._make_predict_function()
 
         self.license_plate_pub = rospy.Publisher("/license_plate", String, queue_size=30)
+        self.session = tf.Session(config=config)
+
+        keras.backend.set_session(self.session)
         self.character_map = self.init_character_map()
         self.number_map = self.init_number_map()
         self.bridge = CvBridge()
@@ -228,16 +242,18 @@ class license_plate_processor:
             if(index == 2):
                 plate_string = plate_string + ","
             img_aug = np.expand_dims(character, axis=0)
-            if index == 1 or index == 4 or index == 5:
-                y_predict = self.license_plate_number_model.predict(img_aug)[0]
-                order = [i for i, j in enumerate(y_predict) if j > 0.5]
-                print(order)
-                plate_string = plate_string + str(self.number_map[order[0]])
-            else:
-                y_predict = self.license_plate_letter_model.predict(img_aug)[0]
-                order = [i for i, j in enumerate(y_predict) if j > 0.5]
-                print(order)
-                plate_string = plate_string + str(self.character_map[order[0]])
+            with self.session.as_default():
+                with self.session.graph.as_default():
+                    if index == 1 or index == 4 or index == 5:
+                        y_predict = self.license_plate_number_model.predict(img_aug)[0]
+                        order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                        print(order)
+                        plate_string = plate_string + str(self.number_map[order[0]])
+                    else:
+                        y_predict = self.license_plate_letter_model.predict(img_aug)[0]
+                        order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                        print(order)
+                        plate_string = plate_string + str(self.character_map[order[0]])
         plate_string = "D1,Richardsucks," + plate_string
         return plate_string
     
