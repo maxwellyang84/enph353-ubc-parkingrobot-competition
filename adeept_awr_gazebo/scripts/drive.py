@@ -33,7 +33,7 @@ class state_machine:
         self.bridge = CvBridge()
         self.last_err = 0
         self.last_pos = 0
-        self.current_state = INITIALIZE
+        self.current_state = INITIALIZE#INITIALIZE
         self.starting_time = time.time()
         self.lpp = license_plate_processor()
     
@@ -45,6 +45,7 @@ class state_machine:
         except CvBridgeError as e:
             print(e)
         frame = state_machine.image_converter(cv_image) # crops 
+
         if self.current_state == INITIALIZE:
             time_elapsed = time.time() - self.starting_time
             if time_elapsed < 0.5:
@@ -54,7 +55,7 @@ class state_machine:
             else:
                 self.current_state = DRIVING
         
-        elif self.current_state == DRIVING:
+        if self.current_state == DRIVING:
             position = state_machine.get_position(frame, self.last_pos)
             self.last_pos = position
             self.speed_controller(position)
@@ -108,7 +109,7 @@ class state_machine:
         # light_test = (20, 20, 20)
         # dark_test = (110, 70, 70)
         # frame = cv.inRange(frame, light_test, dark_test) #road is white and majority of other stuff is black
-        #cv.imshow("Robot", frame)
+        cv.imshow("Robot", frame)
         cv.waitKey(3) 
 
 
