@@ -28,20 +28,29 @@ class license_plate_processor:
     def __init__(self):
         self.license_plate_image = None
         self.location_image = None
-        self.license_plate_model = load_model('grayscale_less_blur.h5')
-        self.license_plate_model._make_predict_function()
-        #self.license_plate_pub = rospy.Publisher("/license_plate topic", std_msgs.msg.String, queue_size=30)
-        #self.image_sub = rospy.Subscriber('image_processor', Image, self.callback)
+        self.license_plate_number_model = load_model('number_neural_network3.h5')
+        self.license_plate_number_model._make_predict_function()
+        self.license_plate_letter_model = load_model('letter_neural_network3.h5')
+        self.license_plate_letter_model._make_predict_function()
+
+        self.license_plate_pub = rospy.Publisher("/license_plate", String, queue_size=30)
         self.character_map = self.init_character_map()
+        self.number_map = self.init_number_map()
         self.bridge = CvBridge()
 
     def init_character_map(self):
         self.character_map = {}
-        for i in range(10):
-            self.character_map[i] = i
-        for i in range(10, 36):
-            self.character_map[i] = str(chr(i+55))
+        for i in range(0, 26):
+            self.character_map[i] = str(chr(i+65))
+        print(self.character_map)
         return self.character_map
+    
+    def init_number_map(self):
+        self.number_map = {}
+        for i in range(0,10):
+            self.number_map[i] = str(i)
+        print(self.number_map)
+        return self.number_map
 
     def get_contour_coords(self, contour):
         x,y,w,h = cv2.boundingRect(contour)
@@ -52,19 +61,10 @@ class license_plate_processor:
         # Converts images from BGR to HSV 
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV) 
         
-        #Range of blue
-        lower_red = np.array([110,50,50]) 
-        upper_red = np.array([130,255,255]) 
-        
-        # Here we are defining range of bluecolor in HSV 
-        # This creates a mask of blue coloured  
-        # objects found in the image. 
-        mask = cv2.inRange(hsv, lower_red, upper_red) 
-        
-        # The bitwise and of the image and mask is done so  
-        # that only the blue coloured objects are highlighted  
-        # and stored in res 
-        res = cv2.bitwise_and(image,image, mask= mask)  
+        lower_grey = np.array([0,0,93]) 
+        upper_grey = np.array([0,0,210])
+
+        mask = cv2.inRange(hsv, lower_grey, upper_grey)
 
         thresh = cv2.threshold(mask, 45, 255, cv2.THRESH_BINARY)[1]
         thresh = cv2.erode(thresh, None, iterations=2)
@@ -76,30 +76,30 @@ class license_plate_processor:
             cv2.CHAIN_APPROX_SIMPLE)  
         cnts = imutils.grab_contours(cnts)
         cnts = [c for c in cnts if cv2.contourArea(c) > 1000] #filter out small contours
-        left_blue_contour = cnts[-1]
-        right_blue_contour = cnts[-2]
-        if cv2.contourArea(left_blue_contour) > cv2.contourArea(right_blue_contour):
-            left_blue_contour = cnts[-2]
-            right_blue_contour = cnts[-1]
+        bottom_white_contour = cnts[-1]
+        top_white_contour = cnts[-2]
+        if cv2.contourArea(bottom_white_contour) > cv2.contourArea(top_white_contour):
+            bottom_white_contour = cnts[-2]
+            top_white_contour = cnts[-1]
         #cv2.drawContours(image, cnts,-1, (0,255,255), 3)
 
         # determine the most extreme points along the contour
-        extLeft = tuple(left_blue_contour[left_blue_contour[:, :, 0].argmin()][0])
-        extRight = tuple(left_blue_contour[left_blue_contour[:, :, 0].argmax()][0])
-        extTop = tuple(left_blue_contour[left_blue_contour[:, :, 1].argmin()][0])
-        extBot = tuple(left_blue_contour[left_blue_contour[:, :, 1].argmax()][0])
+        extLeft = tuple(bottom_white_contour[bottom_white_contour[:, :, 0].argmin()][0])
+        extRight = tuple(bottom_white_contour[bottom_white_contour[:, :, 0].argmax()][0])
+        extTop = tuple(bottom_white_contour[bottom_white_contour[:, :, 1].argmin()][0])
+        extBot = tuple(bottom_white_contour[bottom_white_contour[:, :, 1].argmax()][0])
 
-        extLeft2 = tuple(right_blue_contour[right_blue_contour[:, :, 0].argmin()][0])
-        extRight2 = tuple(right_blue_contour[right_blue_contour[:, :, 0].argmax()][0])
-        extTop2 = tuple(right_blue_contour[right_blue_contour[:, :, 1].argmin()][0])
-        extBot2 = tuple(right_blue_contour[right_blue_contour[:, :, 1].argmax()][0])
+        extLeft2 = tuple(top_white_contour[top_white_contour[:, :, 0].argmin()][0])
+        extRight2 = tuple(top_white_contour[top_white_contour[:, :, 0].argmax()][0])
+        extTop2 = tuple(top_white_contour[top_white_contour[:, :, 1].argmin()][0])
+        extBot2 = tuple(top_white_contour[top_white_contour[:, :, 1].argmax()][0])
 
         x,y = extTop2
-        x2,y2 = extBot2
+        x2,y2 = extTop
         x3,y3 = extRight
         x4,y4 = extLeft2 
 
-        cropped = image[y+50: y2+ 20, x3-15:x4]
+        cropped = image[y+50: y2+10, x4:x3]
 
         #perspective transform for license_plate image
         height, width, channels = cropped.shape
@@ -138,7 +138,7 @@ class license_plate_processor:
         x2,y2 = extLeft
 
         #creates perspective transformed license plate
-        cropped = license_plate_processor.four_point_transform(cropped, np.array([(0,0),(width,0),extRight, (x2, y)]))
+        #cropped = license_plate_processor.four_point_transform(cropped, np.array([(0,0),(width,0),extRight, (x2, y)]))   
         return cropped
     
     def split_characters(self, cropped):
@@ -191,7 +191,7 @@ class license_plate_processor:
         ret, thresh = cv2.threshold(mask, 200, 255, 0)
         __, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         print(cv2.contourArea(contours[0]))
-        contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 6000]
+        contours = [c for c in contours if cv2.contourArea(c) > 50 and cv2.contourArea(c) < 6000]
         
         contours.sort(key=self.get_contour_coords)
 
@@ -223,37 +223,36 @@ class license_plate_processor:
             
             character = cv2.cvtColor(character, cv2.COLOR_GRAY2BGR)
             #cv2.imwrite(str(randint(0,1000)) + ".png", character)
+            if index == 0:
+                pass
             if(index == 2):
-                plate_string = plate_string + "_"
+                plate_string = plate_string + ","
             img_aug = np.expand_dims(character, axis=0)
-            y_predict = self.license_plate_model.predict(img_aug)[0]
-            order = [i for i, j in enumerate(y_predict) if j > 0.5]
-            print(order)
-            plate_string = plate_string + str(self.character_map[order[0]])
-        
+            if index == 1 or index == 4 or index == 5:
+                y_predict = self.license_plate_number_model.predict(img_aug)[0]
+                order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                print(order)
+                plate_string = plate_string + str(self.number_map[order[0]])
+            else:
+                y_predict = self.license_plate_letter_model.predict(img_aug)[0]
+                order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                print(order)
+                plate_string = plate_string + str(self.character_map[order[0]])
+        plate_string = "D1,Richardsucks," + plate_string
         return plate_string
     
     def publish_license_plates(self, plate_string):
-        #self.license_plate_pub.publish(plate_string)
-        pass
+        self.license_plate_pub.publish(plate_string)
+        
 
     def callback(self, image):
-        # try:
-        #     image = self.bridge.imgmsg_to_cv2(data, "bgr8") # gets from camera
-        # except CvBridgeError as e:
-        #     print(e)
-        print("SUP")
         license_plate_image = self.image_cropper(image)
-        print("LOL")
         plate_characters = self.split_characters(license_plate_image)
-        print("MM")
         plate_string = self.neural_network(plate_characters)
-        print("FA")
         #self.publish_license_plates(plate_string)
+        #teamID,teamPass,P1_AA00
         print(plate_string)
-    
-    def location_model_process(self):
-        pass
+
 
     @staticmethod
     def four_point_transform(image, pts):

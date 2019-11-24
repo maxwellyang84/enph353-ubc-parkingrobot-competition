@@ -14,7 +14,7 @@ from keras.utils import plot_model
 from keras import backend
 from matplotlib import pyplot as plt
 
-MIN_ASPECT_RATIO = 0.4
+MIN_ASPECT_RATIO = 0.45
   
 # Webcamera no 0 is used to capture the frames 
 
@@ -82,7 +82,7 @@ def order_points(pts):
 # This drives the program into an infinite loop. 
 
     # Captures the live stream frame-by-frame 
-frame = cv2.imread('./2894.png')
+frame = cv2.imread('./7140.png')
 # frame = cv2.medianBlur(frame,5)
 #frame = frame[750:,0:1279]
     # Converts images from BGR to HSV 
@@ -103,6 +103,14 @@ cv2.imshow('frame',frame)
 cv2.imshow('mask',mask) 
 cv2.imshow('res',res) 
 
+lower_grey = np.array([0,0,93]) 
+upper_grey = np.array([0,0,210])
+
+mask = cv2.inRange(hsv, lower_grey, upper_grey)
+
+cv2.imshow('maskkkk', mask)
+cv2.imshow("Mask", mask)
+
 thresh = cv2.threshold(mask, 45, 255, cv2.THRESH_BINARY)[1]
 thresh = cv2.erode(thresh, None, iterations=2)
 thresh = cv2.dilate(thresh, None, iterations=2)
@@ -119,8 +127,8 @@ c2 = cnts[-2]
 if cv2.contourArea(c) > cv2.contourArea(c2):
 	c = cnts[-2]
 	c2 = cnts[-1]
-cv2.drawContours(frame, c2,-1, (0,255,255), 3)
-cv2.drawContours(frame, c,-1, (0,255,255), 3)
+# cv2.drawContours(frame, c2,-1, (0,255,255), 3)
+# cv2.drawContours(frame, c,-1, (0,255,255), 3)
 
 cv2.imshow("SUP", frame)
 # determine the most extreme points along the contour
@@ -134,25 +142,29 @@ extRight2 = tuple(c2[c2[:, :, 0].argmax()][0])
 extTop2 = tuple(c2[c2[:, :, 1].argmin()][0])
 extBot2 = tuple(c2[c2[:, :, 1].argmax()][0])
 
+cv2.imshow("MM",frame)
+
 x,y = extTop2
-x2,y2 = extBot2
+x2,y2 = extTop
 x3,y3 = extRight
 x4,y4 = extLeft2 
 
-cv2.circle(frame, extLeft, 8, (0, 0, 255), -1)
-cv2.circle(frame, extRight, 8, (0, 255, 0), -1)
-cv2.circle(frame, extTop, 8, (255, 0, 0), -1)
-cv2.circle(frame, extBot, 8, (255, 255, 0), -1)
+# cv2.circle(frame, extLeft, 8, (0, 0, 255), -1)
+# cv2.circle(frame, extRight, 8, (0, 255, 0), -1)
+# cv2.circle(frame, extTop, 8, (255, 0, 0), -1)
+# cv2.circle(frame, extBot, 8, (255, 255, 0), -1)
 
-cv2.circle(frame, extLeft2, 8, (0, 0, 255), -1)
-cv2.circle(frame, extRight2, 8, (0, 255, 0), -1)
-cv2.circle(frame, extTop2, 8, (255, 0, 0), -1)
-cv2.circle(frame, extBot2, 8, (255, 255, 0), -1)
+# cv2.circle(frame, extLeft2, 8, (0, 0, 255), -1)
+# cv2.circle(frame, extRight2, 8, (0, 255, 0), -1)
+# cv2.circle(frame, extTop2, 8, (255, 0, 0), -1)
+# cv2.circle(frame, extBot2, 8, (255, 255, 0), -1)
 
 cv2.imshow("mm", frame)
-cropped = frame[y+50: y2+ 20, x3-15:x4]
+cropped = frame[y+50: y2+10, x4:x3]
 
-cv2.imshow("again", frame)
+cv2.imshow("again", cropped)
+cv2.imshow("MMFS", frame)
+
 height, width, channels = cropped.shape
 
 hsv = cv2.cvtColor(cropped, cv2.COLOR_BGR2HSV) 
@@ -190,10 +202,10 @@ extRight = tuple(c[c[:, :, 0].argmax()][0])
 extTop = tuple(c[c[:, :, 1].argmin()][0])
 extBot = tuple(c[c[:, :, 1].argmax()][0])
 
-cv2.circle(cropped, extLeft, 8, (0, 0, 255), -1)
-cv2.circle(cropped, extRight, 8, (0, 255, 0), -1)
-cv2.circle(cropped, extTop, 8, (255, 0, 0), -1)
-cv2.circle(cropped, extBot, 8, (255, 255, 0), -1)
+# cv2.circle(cropped, extLeft, 8, (0, 0, 255), -1)
+# cv2.circle(cropped, extRight, 8, (0, 255, 0), -1)
+# cv2.circle(cropped, extTop, 8, (255, 0, 0), -1)
+# cv2.circle(cropped, extBot, 8, (255, 255, 0), -1)
 
 x,y = extRight
 x2,y2 = extLeft
@@ -297,13 +309,13 @@ cv2.imshow("contours", cropped)
 
 # cv2.imshow("Sup", frame)
 
-image = cv2.imread('./6868.png')
+image = cv2.imread('./15.png')
 print(image.shape)
 img = cv2.resize(image, (100, 100))
 cv2.imshow("big", img)
 image = cv2.resize(image,(64,64))
 cv2.imshow("IMAGE", image)
-model = load_model('grayscale_less_blur.h5')
+model = load_model('letter_neural_network3.h5')
 img_aug = np.expand_dims(image, axis=0)
 print(img_aug.shape)
 y_predict = model.predict(img_aug)[0]
