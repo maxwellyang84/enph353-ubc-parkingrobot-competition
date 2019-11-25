@@ -72,7 +72,7 @@ class state_machine:
                 # img_msg = self.bridge.cv2_to_imgmsg(frame)
                 # self.image_pub.publish(img_msg)
                 self.stop()
-                cv.imwrite(str("./license_plates/" + randint(0,10000)) + ".png", frame)
+                cv.imwrite("./license_plates/" + str(randint(0,10000)) + ".png", frame)
                 self.lpp.callback(frame)
                 #self.stop()
                 #time.sleep(1)
@@ -148,24 +148,6 @@ class state_machine:
         return cv_image[340:719,0:1279]
 
     @staticmethod
-    def check_crosswalk_end(frame):
-        light_red = (0, 0, 245) # BGR
-        dark_red = (10, 10, 255)
-        red_pixels = 0
-
-        check_frame = cv.inRange(frame, light_red, dark_red) #only red appears, all else black
-        
-        for i in range(NUM_PIXELS_X-1): #length of pixels we wanna look at
-            val = check_frame[NUM_PIXELS_Y-1,i] # Y_READING_LEVEL
-            if (val != 0):
-                red_pixels = red_pixels + 1
-
-        if (red_pixels > NUM_PIXELS_X/5):
-            return 1
-        else:
-            return 0 
-
-    @staticmethod
     def check_crosswalk(frame):
         light_red = (0, 0, 245) # BGR
         dark_red = (10, 10, 255)
@@ -218,25 +200,24 @@ class state_machine:
                  white_pixels = white_pixels + 1
         #print("Num:" + " " +  str(white_pixels))
         
-        if (white_pixels < 50): #READING_GAP/4
+        if (white_pixels < 50): #READING_GAP/4, 50
             return 0
 
         if ((blue_mask[150,0] != 0) or (blue2_mask[150,0] != 0)): #make sure edge isnt blue
             return 0
 
         else:
-            #print("SAW WHITE")
+            print("SAW WHITE")
             check_stripes = 0
-            for i in range(2*READING_GAP):
-                if (((blue_mask[150,i] == 0) or (blue2_mask[150,i] == 0)) and check_stripes == 0): #first not blue
+            for i in range(2*READING_GAP+10): #ADDED THE +10, changed the y value from 150 to 60,
+                if (((blue_mask[120,i] == 0) or (blue2_mask[120,i] == 0)) and check_stripes == 0): #first not blue
                     check_stripes = 1
-                if (((blue_mask[150,i] != 0) or (blue2_mask[150,i] != 0)) and check_stripes == 1): #first blue
+                if (((blue_mask[120,i] != 0) or (blue2_mask[120,i] != 0)) and check_stripes == 1): #first blue
                     check_stripes = 2
-                if (((blue_mask[150,i] == 0) or (blue2_mask[150,i] == 0)) and check_stripes == 2): #second not blue
+                if (((blue_mask[120,i] == 0) or (blue2_mask[120,i] == 0)) and check_stripes == 2): #second not blue
                     check_stripes = 3
-                if (((blue_mask[150,i] != 0) or (blue2_mask[150,i] != 0)) and check_stripes == 3): #second blue
+                if (((blue_mask[120,i] != 0) or (blue2_mask[120,i] != 0)) and check_stripes == 3): #second blue
                     check_stripes = 4
-                
                 if (check_stripes == 4):
                     #print("passed stripes test")
                     return 1
