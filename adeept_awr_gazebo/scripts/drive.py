@@ -65,7 +65,7 @@ class state_machine:
                 self.stop()
                 self.current_state = WATCHING
                 print("Stop! Looking for pedestrians...")
-            if self.check_blue_car(frame) and time_elapsed > 1:
+            if self.check_blue_car(frame) and time_elapsed > 0.5:
                 self.starting_time = time.time()
                 print("License plate snapped")
                 cv.imshow("Frame", frame)
@@ -100,11 +100,11 @@ class state_machine:
 
         
         #      DEBUGGING TOOLS TO SEE BLACK AND WHITE
-        cv.circle(frame, (READING_GAP, Y_READING_LEVEL), 15, (255,205,195), -1)
-        cv.circle(frame, (NUM_PIXELS_X-READING_GAP,Y_READING_LEVEL), 15, (255,205,195), -1)        
-        cv.circle(frame, (READING_GAP,Y_READ_PLATES), 15, (255,205,195), -1)       
-        cv.circle(frame, (NUM_PIXELS_X/3,Y_READ_PED), 15, (255,205,195), -1)
-        cv.circle(frame, (2*NUM_PIXELS_X/3,Y_READ_PED), 15, (255,205,195), -1)
+        # cv.circle(frame, (READING_GAP, Y_READING_LEVEL), 15, (255,205,195), -1) #top two cicles are for linefollowing
+        # cv.circle(frame, (NUM_PIXELS_X-READING_GAP,Y_READING_LEVEL), 15, (255,205,195), -1)        
+        # cv.circle(frame, (READING_GAP,Y_READ_PLATES), 15, (255,205,195), -1)  #reading for white here  
+        cv.circle(frame, (NUM_PIXELS_X/3+10,Y_READ_PED), 15, (255,205,195), -1) #checking for ped on left
+        # cv.circle(frame, (2*NUM_PIXELS_X/3,Y_READ_PED), 15, (255,205,195), -1)
     
         # light_test = (20, 20, 20)
         # dark_test = (110, 70, 70)
@@ -207,7 +207,7 @@ class state_machine:
             return 0
 
         else:
-            print("SAW WHITE")
+            #print("SAW WHITE")
             check_stripes = 0
             for i in range(2*READING_GAP+10): #ADDED THE +10, changed the y value from 150 to 60,
                 if (((blue_mask[120,i] == 0) or (blue2_mask[120,i] == 0)) and check_stripes == 0): #first not blue
@@ -231,7 +231,7 @@ class state_machine:
         jeans_mask = cv.inRange(frame, light_jeans, dark_jeans) #road is white and majority of other stuff is black
         jean_pixels = 0
 
-        for i in range(NUM_PIXELS_X/6): #we want 10 pixels
+        for i in range(NUM_PIXELS_X/6+15): #we want 10 pixels
             if jeans_mask[Y_READ_PED, NUM_PIXELS_X/6+i] != 0:
                 jean_pixels = jean_pixels + 1
 
@@ -246,11 +246,6 @@ class state_machine:
         velocity.linear.x = 0
         self.vel_pub.publish(velocity)
 
-    # def go(self, sec):
-    #     velocity = Twist()
-    #     velocity.linear.x = 1
-    #     self.vel_pub.publish(velocity)
-    #     time.sleep(sec)
 
     def speed_controller(self, position):
         velocity = Twist()
