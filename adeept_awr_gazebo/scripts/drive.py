@@ -132,7 +132,7 @@ class state_machine:
         #         # self.image_pub.publish(img_msg)
         #         #self.stop()
         #         #cv.imwrite("./license_plates/" + str(randint(0,10000)) + ".png", frame)
-        #         #self.lpp.callback(frame)
+        #         #self.lpp.callback(frame, True)
 
         elif self.current_state == TRANSITION:
             ros_time_elapsed = rospy.get_time() - self.ros_starting_time
@@ -167,7 +167,7 @@ class state_machine:
                 # self.image_pub.publish(img_msg)
                 #self.stop()
                 #cv.imwrite("./license_plates/" + str(randint(0,10000)) + ".png", frame)
-                #self.lpp.callback(frame)
+                #self.lpp.callback(frame, False)
         
         elif self.current_state == WATCHING:
             if self.watch_people(frame):
