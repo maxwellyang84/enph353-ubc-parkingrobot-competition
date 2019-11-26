@@ -83,7 +83,7 @@ class license_plate_processor:
         return x
   
     def image_cropper(self, image):
-        image = image[:,0:600] #alter if needed
+        #image = image[:,0:600] #alter if needed
         # Converts images from BGR to HSV 
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV) 
         
@@ -324,7 +324,11 @@ class license_plate_processor:
         self.license_plate_pub.publish(plate_string)
         
 
-    def callback(self, image):
+    def callback(self, image, inner):
+        if inner:
+            image = image[:, 600:]
+        else:
+            image = image[:, :600]
         license_plate_image = self.image_cropper(image)
         plate_characters = self.split_characters(license_plate_image)
         plate_string = self.neural_network(plate_characters)
