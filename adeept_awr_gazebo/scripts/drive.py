@@ -46,6 +46,9 @@ class state_machine:
         self.last_pos = 0
         self.current_state = INITIALIZE #INITIALIZE
         self.starting_time = time.time()
+        while not rospy.get_time():
+            self.ros_starting_time = rospy.get_time()
+        self.ros_starting_time = rospy.get_time()
         self.num_of_plates_snapped = 0
         self.initalized = False
         self.truck_spotted = False
@@ -61,10 +64,12 @@ class state_machine:
         except CvBridgeError as e:
             print(e)
         frame = state_machine.image_converter(cv_image) # crops 
-
+    
         if self.current_state == INITIALIZE: #for turning into initial loop first
-            time_elapsed = time.time() - self.starting_time
-            if time_elapsed < 3 and not self.initalized:
+            ros_time_elapsed = rospy.get_time() - self.ros_starting_time
+            #print("elapsed time: " + str(ros_time_elapsed))
+            if ros_time_elapsed < 2.4 and not self.initalized:
+                # print("rotating...")
                 self.speed_controller(500)
             else:
                 if not self.initalized:
@@ -74,25 +79,26 @@ class state_machine:
                     if self.watch_truck(frame):
                         self.truck_spotted = True
                         print("There it is! Now let's give it a head start...")
-                    # print("looking for truck: " + str(time_elapsed))
+                    # print("looking for truck: " + str(ros_time_elapsed))
                     self.stop()
-                    self.starting_time = time.time()
-                elif time_elapsed < 7:
-                    # print("waiting 7 sec: " + str(time_elapsed))
+                    self.ros_starting_time = rospy.get_time()
+                elif ros_time_elapsed < 5.6:
+                    # print("waiting 5.6 sec: " + str(ros_time_elapsed))
                     self.stop()
-                elif time_elapsed < 7.5:
-                    # print("going forward a bit: " + str(time_elapsed))
+                elif ros_time_elapsed < 6:
+                    # print("going forward a bit: " + str(ros_time_elapsed))
                     self.speed_controller(0)
-                elif time_elapsed < 8.1: #7.75
-                    # print("rotating a bit:" + str(time_elapsed))
+                elif ros_time_elapsed < 6.5: #7.75
+                    # print("rotating a bit:" + str(ros_time_elapsed))
                     self.speed_controller(500)
                 else:
                     # print("driving!")
-                    self.starting_time = time.time()
+                    self.ros_starting_time = rospy.get_time()
                     self.current_state = DRIVING_INNER
-                
+
+
         elif self.current_state == DRIVING_INNER:
-            time_elapsed = time.time() - self.starting_time
+            ros_time_elapsed = rospy.get_time() - self.ros_starting_time
       
             position = state_machine.get_position(frame, self.last_pos)
             self.last_pos = position
@@ -100,18 +106,18 @@ class state_machine:
 
             if not self.first_inner_car:
                 if self.check_blue_car(frame, True) and not self.first_inner_pic_snapped:
-                    time_elapsed = 0
+                    ros_time_elapsed = 0
                     self.stop()
                     self.first_inner_pic_snapped = True
-                    self.starting_time = time.time()
+                    self.ros_starting_time = rospy.get_time()
                     print("Inner License plate snapped")
                     # print(time_elapsed)
                     cv.imshow("Frame", frame)
                 
-                if time_elapsed < 6 and self.first_inner_pic_snapped:
+                if ros_time_elapsed < 4.8 and self.first_inner_pic_snapped:
                     # print("waiting: " + str(time_elapsed))
                     self.stop()
-                elif time_elapsed > 6 and self.first_inner_pic_snapped: 
+                elif ros_time_elapsed > 4.8 and self.first_inner_pic_snapped: 
                     self.first_inner_car = True
                     # print("onto second car")
             else:
@@ -121,7 +127,7 @@ class state_machine:
                     cv.imshow("Frame", frame)
                     self.stop()
                     self.current_state = TRANSITION    
-                    self.starting_time = time.time()
+                    self.ros_starting_time = rospy.get_time()
         #         # img_msg = self.bridge.cv2_to_imgmsg(frame)
         #         # self.image_pub.publish(img_msg)
         #         #self.stop()
@@ -129,14 +135,14 @@ class state_machine:
         #         #self.lpp.callback(frame)
 
         elif self.current_state == TRANSITION:
-            time_elapsed = time.time() - self.starting_time
-            if time_elapsed < 1.5:
+            ros_time_elapsed = rospy.get_time() - self.ros_starting_time
+            if ros_time_elapsed < 1.2:
                 self.speed_controller(0)
-            elif time_elapsed < 3:
+            elif ros_time_elapsed < 2.4:
                 self.speed_controller(500)
-            elif time_elapsed < 5.5:
+            elif ros_time_elapsed < 4.4:
                 self.speed_controller(0)
-            elif time_elapsed < 6:
+            elif ros_time_elapsed < 4.8:
                 self.speed_controller(500)
             else:
                 self.current_state = DRIVING
@@ -147,14 +153,14 @@ class state_machine:
             position = state_machine.get_position(frame, self.last_pos)
             self.last_pos = position
             self.speed_controller(position)
-            time_elapsed = time.time() - self.starting_time
+            ros_time_elapsed = rospy.get_time() - self.ros_starting_time
 
             if self.check_crosswalk(frame):
                 self.stop()
                 self.current_state = WATCHING
                 print("Stop! Looking for pedestrians...")
-            if self.check_blue_car(frame, False) and time_elapsed > 0.5:
-                self.starting_time = time.time()
+            if self.check_blue_car(frame, False) and ros_time_elapsed > 0.4:
+                self.ros_starting_time = rospy.get_time()
                 print("Outer License plate snapped")
                 cv.imshow("Frame", frame)
                 # img_msg = self.bridge.cv2_to_imgmsg(frame)
@@ -166,14 +172,14 @@ class state_machine:
         elif self.current_state == WATCHING:
             if self.watch_people(frame):
                 self.current_state = CROSS_THE_WALK
-                self.starting_time = time.time()
+                self.ros_starting_time = rospy.get_time()
         
         elif self.current_state == CROSS_THE_WALK:
-            time_elapsed = time.time() - self.starting_time
+            ros_time_elapsed = rospy.get_time() - self.ros_starting_time
             #print(time_elapsed)
-            if time_elapsed < 0.25:
+            if ros_time_elapsed < 0.2:
                 self.speed_controller(0)
-            elif time_elapsed < 3:
+            elif ros_time_elapsed < 2.4:
                 if self.check_crosswalk(frame):
                     self.speed_controller(0)
                 else:
