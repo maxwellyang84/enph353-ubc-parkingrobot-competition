@@ -14,6 +14,8 @@ import tensorflow as tf
 from keras.utils import plot_model
 from keras import backend
 from matplotlib import pyplot as plt
+from tensorflow.python.keras.backend import set_session
+
 
 import rospy
 import sys
@@ -25,20 +27,24 @@ from random import randint
 
 MIN_ASPECT_RATIO = 0.45
 
-# config = tf.ConfigProto(
-#     device_count={'GPU': 1},
-#     intra_op_parallelism_threads=1,
-#     allow_soft_placement=True
-# )
+config = tf.ConfigProto(
+    device_count={'GPU': 1},
+    intra_op_parallelism_threads=1,
+    allow_soft_placement=True
+)
 
-# config.gpu_options.allow_growth = True
-# config.gpu_options.per_process_gpu_memory_fraction = 0.6
+config.gpu_options.allow_growth = True
+config.gpu_options.per_process_gpu_memory_fraction = 0.6
 
 class license_plate_processor:
 
     def __init__(self):
         self.license_plate_image = None
         self.location_image = None
+
+        self.session = tf.Session(config=config)
+
+        keras.backend.set_session(self.session)
         self.license_plate_number_model = load_model('number_neural_network4.h5')
         self.license_plate_number_model._make_predict_function()
         self.license_plate_letter_model = load_model('letter_neural_network4.h5')
@@ -47,9 +53,7 @@ class license_plate_processor:
         self.license_plate_location_model._make_predict_function()
 
         self.license_plate_pub = rospy.Publisher("/license_plate", String, queue_size=30)
-        # self.session = tf.Session(config=config)
-
-        # keras.backend.set_session(self.session)
+       
         self.character_map = self.init_character_map()
         self.number_map = self.init_number_map()
         self.location_map = self.init_location_map()
@@ -229,10 +233,10 @@ class license_plate_processor:
                 plate_characters.append(gray[y:y+h,x:x+w])
 
         
-        cv2.imshow("Hello", mask)
+        cv2.imshow("License Plate", mask)
 
         # imgThreshold = imgThreshold[50:, :]
-        cv2.imshow("SAA", imgThreshold)
+        cv2.imshow("Location", imgThreshold)
        
         # plate_characters.reverse()
         return plate_characters
@@ -247,6 +251,7 @@ class license_plate_processor:
             #cv2.imwrite(str(randint(0,1000)) + ".png", character)
             if(index == 2):
                 plate_string = plate_string + ","
+<<<<<<< HEAD
             if index == 4 or index == 5:
                 character = cv2.resize(character,(64,64))
                 img_aug = np.expand_dims(character, axis=0)
@@ -269,6 +274,28 @@ class license_plate_processor:
                 #print(order)
                 plate_string = plate_string + str(self.character_map[order[0]])
         plate_string = "Maxwell Carried ,Richard Sucks," + plate_string
+=======
+            img_aug = np.expand_dims(character, axis=0)
+            
+            with self.session.as_default():
+                with self.session.graph.as_default():
+                    if index == 4 or index == 5:
+                        y_predict = self.license_plate_number_model.predict(img_aug)[0]
+                        order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                        #print(order)
+                        plate_string = plate_string + str(self.number_map[order[0]])
+                    elif index == 1:
+                        y_predict = self.license_plate_location_model.predict(img_aug)[0]
+                        order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                        print(order)
+                        plate_string = plate_string + str(self.location_map[order[0]])
+                    else:
+                        y_predict = self.license_plate_letter_model.predict(img_aug)[0]
+                        order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                        #print(order)
+                        plate_string = plate_string + str(self.character_map[order[0]])
+        plate_string = "Richard carried, Maxwell sucks: " + plate_string
+>>>>>>> 953c9c98109c0eaef711a19da7b4321b90efd444
         return plate_string
     
     def publish_license_plates(self, plate_string):

@@ -33,7 +33,7 @@ class state_machine:
         self.bridge = CvBridge()
         self.last_err = 0
         self.last_pos = 0
-        self.current_state = INITIALIZE
+        self.current_state = INITIALIZE#INITIALIZE
         self.starting_time = time.time()
         self.lpp = license_plate_processor()
     
@@ -45,6 +45,7 @@ class state_machine:
         except CvBridgeError as e:
             print(e)
         frame = state_machine.image_converter(cv_image) # crops 
+
         if self.current_state == INITIALIZE:
             time_elapsed = time.time() - self.starting_time
             if time_elapsed < 0.5:
@@ -54,7 +55,7 @@ class state_machine:
             else:
                 self.current_state = DRIVING
         
-        elif self.current_state == DRIVING:
+        if self.current_state == DRIVING:
             position = state_machine.get_position(frame, self.last_pos)
             self.last_pos = position
             self.speed_controller(position)
@@ -64,7 +65,7 @@ class state_machine:
                 self.stop()
                 self.current_state = WATCHING
                 print("Stop! Looking for pedestrians...")
-            if self.check_blue_car(frame) and time_elapsed > 1:
+            if self.check_blue_car(frame) and time_elapsed > 0.5:
                 self.starting_time = time.time()
                 print("License plate snapped")
                 cv.imshow("Frame", frame)
@@ -99,16 +100,16 @@ class state_machine:
 
         
         #      DEBUGGING TOOLS TO SEE BLACK AND WHITE
-        cv.circle(frame, (READING_GAP, Y_READING_LEVEL), 15, (255,205,195), -1)
-        cv.circle(frame, (NUM_PIXELS_X-READING_GAP,Y_READING_LEVEL), 15, (255,205,195), -1)        
-        cv.circle(frame, (READING_GAP,Y_READ_PLATES), 15, (255,205,195), -1)       
-        cv.circle(frame, (NUM_PIXELS_X/3,Y_READ_PED), 15, (255,205,195), -1)
-        cv.circle(frame, (2*NUM_PIXELS_X/3,Y_READ_PED), 15, (255,205,195), -1)
+        # cv.circle(frame, (READING_GAP, Y_READING_LEVEL), 15, (255,205,195), -1) #top two cicles are for linefollowing
+        # cv.circle(frame, (NUM_PIXELS_X-READING_GAP,Y_READING_LEVEL), 15, (255,205,195), -1)        
+        # cv.circle(frame, (READING_GAP,Y_READ_PLATES), 15, (255,205,195), -1)  #reading for white here  
+        cv.circle(frame, (NUM_PIXELS_X/3+10,Y_READ_PED), 15, (255,205,195), -1) #checking for ped on left
+        # cv.circle(frame, (2*NUM_PIXELS_X/3,Y_READ_PED), 15, (255,205,195), -1)
     
         # light_test = (20, 20, 20)
         # dark_test = (110, 70, 70)
         # frame = cv.inRange(frame, light_test, dark_test) #road is white and majority of other stuff is black
-        #cv.imshow("Robot", frame)
+        cv.imshow("Robot", frame)
         cv.waitKey(3) 
 
 
@@ -145,24 +146,6 @@ class state_machine:
     def image_converter(cv_image):
         #cropping irrelevant pixels out: x:0,1278 ; y:0,378 (0 at top)
         return cv_image[340:719,0:1279]
-
-    @staticmethod
-    def check_crosswalk_end(frame):
-        light_red = (0, 0, 245) # BGR
-        dark_red = (10, 10, 255)
-        red_pixels = 0
-
-        check_frame = cv.inRange(frame, light_red, dark_red) #only red appears, all else black
-        
-        for i in range(NUM_PIXELS_X-1): #length of pixels we wanna look at
-            val = check_frame[NUM_PIXELS_Y-1,i] # Y_READING_LEVEL
-            if (val != 0):
-                red_pixels = red_pixels + 1
-
-        if (red_pixels > NUM_PIXELS_X/5):
-            return 1
-        else:
-            return 0 
 
     @staticmethod
     def check_crosswalk(frame):
@@ -217,7 +200,7 @@ class state_machine:
                  white_pixels = white_pixels + 1
         #print("Num:" + " " +  str(white_pixels))
         
-        if (white_pixels < 50): #READING_GAP/4
+        if (white_pixels < 50): #READING_GAP/4, 50
             return 0
 
         if ((blue_mask[150,0] != 0) or (blue2_mask[150,0] != 0)): #make sure edge isnt blue
@@ -226,16 +209,15 @@ class state_machine:
         else:
             #print("SAW WHITE")
             check_stripes = 0
-            for i in range(2*READING_GAP):
-                if (((blue_mask[150,i] == 0) or (blue2_mask[150,i] == 0)) and check_stripes == 0): #first not blue
+            for i in range(2*READING_GAP+10): #ADDED THE +10, changed the y value from 150 to 60,
+                if (((blue_mask[120,i] == 0) or (blue2_mask[120,i] == 0)) and check_stripes == 0): #first not blue
                     check_stripes = 1
-                if (((blue_mask[150,i] != 0) or (blue2_mask[150,i] != 0)) and check_stripes == 1): #first blue
+                if (((blue_mask[120,i] != 0) or (blue2_mask[120,i] != 0)) and check_stripes == 1): #first blue
                     check_stripes = 2
-                if (((blue_mask[150,i] == 0) or (blue2_mask[150,i] == 0)) and check_stripes == 2): #second not blue
+                if (((blue_mask[120,i] == 0) or (blue2_mask[120,i] == 0)) and check_stripes == 2): #second not blue
                     check_stripes = 3
-                if (((blue_mask[150,i] != 0) or (blue2_mask[150,i] != 0)) and check_stripes == 3): #second blue
+                if (((blue_mask[120,i] != 0) or (blue2_mask[120,i] != 0)) and check_stripes == 3): #second blue
                     check_stripes = 4
-                
                 if (check_stripes == 4):
                     #print("passed stripes test")
                     return 1
@@ -249,7 +231,7 @@ class state_machine:
         jeans_mask = cv.inRange(frame, light_jeans, dark_jeans) #road is white and majority of other stuff is black
         jean_pixels = 0
 
-        for i in range(NUM_PIXELS_X/6): #we want 10 pixels
+        for i in range(NUM_PIXELS_X/6+15): #we want 10 pixels
             if jeans_mask[Y_READ_PED, NUM_PIXELS_X/6+i] != 0:
                 jean_pixels = jean_pixels + 1
 
@@ -264,11 +246,6 @@ class state_machine:
         velocity.linear.x = 0
         self.vel_pub.publish(velocity)
 
-    # def go(self, sec):
-    #     velocity = Twist()
-    #     velocity.linear.x = 1
-    #     self.vel_pub.publish(velocity)
-    #     time.sleep(sec)
 
     def speed_controller(self, position):
         velocity = Twist()
