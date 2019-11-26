@@ -281,7 +281,7 @@ cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
 for cnt in contours:
     x,y,w,h = cv2.boundingRect(cnt)
     #cv2.rectangle(th3,(x-5,y-5),(x+w+5,y+h+5),(0,255,0),2)
-    cv2.imwrite("./cropped_letters/" + str(x+y) + ".png", gray[y:y+h,x:x+w])
+    cv2.imwrite("" + str(x+y) + ".png", gray[y:y+h,x:x+w])
 
 # ret, thresh = cv2.threshold(th3, 70, 255, 0)
 # __,contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

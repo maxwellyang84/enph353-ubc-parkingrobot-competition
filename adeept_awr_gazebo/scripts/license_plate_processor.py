@@ -83,7 +83,7 @@ class license_plate_processor:
         return x
   
     def image_cropper(self, image):
-        #image = image[750:,0:1279]
+        image = image[:,0:600] #alter if needed
         # Converts images from BGR to HSV 
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV) 
         
@@ -103,10 +103,12 @@ class license_plate_processor:
         cnts = imutils.grab_contours(cnts)
         cnts.sort(key=self.get_contour_coords)
         cnts = [c for c in cnts if cv2.contourArea(c) > 1000] #filter out small contours
-        print(len(cnts))
-        print(cv2.contourArea(cnts[0]))
-        print(cv2.contourArea(cnts[1]))
-        print(cv2.contourArea(cnts[2]))
+        # print(len(cnts))
+        # print(cv2.contourArea(cnts[0]))
+        # print(cv2.contourArea(cnts[1]))
+        # print(cv2.contourArea(cnts[2]))
+        # print(cv2.contourArea(cnts[-1]))
+        # print(cv2.contourArea(cnts[-2]))
         bottom_white_contour = cnts[-1]
         top_white_contour = cnts[-2]
         if cv2.contourArea(bottom_white_contour) > cv2.contourArea(top_white_contour):
@@ -116,6 +118,7 @@ class license_plate_processor:
         cv2.imshow("S", image)
         cv2.imshow("<MM", image)
         
+       
        
 
         # determine the most extreme points along the contour
@@ -134,6 +137,7 @@ class license_plate_processor:
         x3,y3 = extRight
         x4,y4 = extLeft2 
 
+       
         cropped = image[y+50: y2+10, x4:x3]
 
         #perspective transform for license_plate image
@@ -213,7 +217,7 @@ class license_plate_processor:
         ret, thresh = cv2.threshold(imgThreshold, 200, 255, 0)
         __,contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         print(len(contours))
-        contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 6000]
+        contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 5000]
         print(len(contours))
         contours.sort(key=self.get_contour_coords)
 
@@ -228,29 +232,34 @@ class license_plate_processor:
         ret, thresh = cv2.threshold(mask, 200, 255, 0)
         __, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         #print(cv2.contourArea(contours[0]))
-        contours = [c for c in contours if cv2.contourArea(c) > 50 and cv2.contourArea(c) < 5000]
+        contours = [c for c in contours if cv2.contourArea(c) > 79 and cv2.contourArea(c) < 5000] #used to be 50
         
         contours.sort(key=self.get_contour_coords)
-
+        print(len(contours))
         for cnt in contours:
             x,y,w,h = cv2.boundingRect(cnt)
             aspect_ratio = float(h)/w
-            #print(aspect_ratio)
+            print(cv2.contourArea(cnt))
+            print(aspect_ratio)
             if aspect_ratio < MIN_ASPECT_RATIO:
                 plate_characters.append(gray[y:y+h, x: x+int(w/2)])
                 plate_characters.append(gray[y:y+h, x+int(w/2):x+w])
             #cv2.rectangle(th3,(x-5,y-5),(x+w+5,y+h+5),(0,255,0),2)
             else:
                 plate_characters.append(gray[y:y+h,x:x+w])
-
+        
         count = 0
         for characters in plate_characters:
             cv2.imshow(str(count), characters)
             count = count + 1
         
-        
+        cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
+        cv2.imshow("plate", cropped)
+        cv2.imshow("plates", cropped)
         cv2.imshow("License Plate", mask)
-      
+        # while 1:
+        #    pass
+
         # imgThreshold = imgThreshold[50:, :]
         cv2.imshow("Location", imgThreshold)
        
