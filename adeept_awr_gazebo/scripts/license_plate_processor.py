@@ -45,7 +45,7 @@ class license_plate_processor:
         self.session = tf.Session(config=config)
 
         keras.backend.set_session(self.session)
-        self.license_plate_number_model = load_model('number_neural_network4.h5')
+        self.license_plate_number_model = load_model('number_neural_network11_less_blur_no_rotation.h5')
         self.license_plate_number_model._make_predict_function()
         self.license_plate_letter_model = load_model('letter_neural_network4.h5')
         self.license_plate_letter_model._make_predict_function()
@@ -112,11 +112,11 @@ class license_plate_processor:
         if cv2.contourArea(bottom_white_contour) > cv2.contourArea(top_white_contour):
             bottom_white_contour = cnts[-2]
             top_white_contour = cnts[-1]
-        cv2.drawContours(image, cnts,-1, (0,255,255), 3)
+        #cv2.drawContours(image, cnts,-1, (0,255,255), 3)
         cv2.imshow("S", image)
         cv2.imshow("<MM", image)
         
-        
+       
 
         # determine the most extreme points along the contour
         extLeft = tuple(bottom_white_contour[bottom_white_contour[:, :, 0].argmin()][0])
@@ -207,12 +207,14 @@ class license_plate_processor:
 
         plate_characters = []
 
+        cv2.imshow("gray", gray)
         
 
         ret, thresh = cv2.threshold(imgThreshold, 200, 255, 0)
         __,contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 5000]
-
+        print(len(contours))
+        contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 6000]
+        print(len(contours))
         contours.sort(key=self.get_contour_coords)
 
         imgThreshold = cv2.bitwise_not(imgThreshold)
@@ -241,9 +243,14 @@ class license_plate_processor:
             else:
                 plate_characters.append(gray[y:y+h,x:x+w])
 
+        count = 0
+        for characters in plate_characters:
+            cv2.imshow(str(count), characters)
+            count = count + 1
+        
         
         cv2.imshow("License Plate", mask)
-
+      
         # imgThreshold = imgThreshold[50:, :]
         cv2.imshow("Location", imgThreshold)
        
