@@ -347,10 +347,11 @@ class state_machine:
                 if (white_mask[Y_READ_PLATES,i+X_READ_INNER_PLATES] != 0):
                     white_pixels = white_pixels + 1
             
-            # print(white_pixels)
+            #print(white_pixels)
             if (white_pixels < 80):
                 return 0           
 
+            print(white_pixels)
             for i in range(NUM_PIXELS_X-X_CHECK_INNER_BLUE-1):
                 if blue_mask[Y_CHECK_INNER_BLUE,i+X_CHECK_INNER_BLUE] != 0 or blue2_mask[Y_CHECK_INNER_BLUE,i+X_CHECK_INNER_BLUE] != 0: #first blue
                     #print("FOUND INNER PLATE AYY")
