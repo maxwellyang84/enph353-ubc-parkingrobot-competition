@@ -208,9 +208,11 @@ class state_machine:
         #     if jeans_mask[Y_READ_PED, NUM_PIXELS_X/6+i] != 0:
         #         jean_pixels = jean_pixels + 1
 
-        # light_test = (100, 100, 100)
-        # dark_test = (130, 130, 130)
-        # frame = cv.inRange(frame, light_test, dark_test) #road is white and majority of other stuff is black
+        light_test = (20, 20, 20)
+        dark_test = (110, 70, 70)
+        frame = cv.inRange(frame, light_test, dark_test) #road is white and majority of other stuff is black
+        cv.circle(frame, (NUM_PIXELS_X/6,Y_READ_PED), 15, (255,205,195), -1) #checking for ped on left
+        cv.circle(frame, (2*NUM_PIXELS_X/6+15,Y_READ_PED), 15, (255,205,195), -1)
         cv.imshow("Robot's view :3", frame)
         cv.waitKey(3) 
 
