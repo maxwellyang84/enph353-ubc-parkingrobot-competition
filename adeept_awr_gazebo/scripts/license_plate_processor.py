@@ -57,6 +57,9 @@ class license_plate_processor:
         self.license_plate_letter_model_backup = load_model("testletternnaddedmoreletterstomostblurred6.h5")
         self.license_plate_letter_model_backup._make_predict_function()
 
+        self.license_plate_letter_model_backup2 = load_model('testlettercnn2.h5')
+        self.license_plate_letter_model_backup2._make_predict_function()
+
         self.license_plate_pub = rospy.Publisher("/license_plate", String, queue_size=30)
        
         self.character_map = self.init_character_map()
@@ -318,6 +321,11 @@ class license_plate_processor:
                         y_predict = self.license_plate_letter_model_backup.predict(img_aug)[0]
                         order = [i for i, j in enumerate(y_predict) if j > 0.5]
                         print(self.character_map[order[0]])
+                    if self.character_map[order[0]] == 'M':
+                        print(self.character_map[order[0]])
+                        y_predict = self.license_plate_letter_model_backup2.predict(img_aug)[0]
+                        order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                        print(self.character_map[order[0]])
                     #print(order)
                     plate_string = plate_string + str(self.character_map[order[0]])
             else:
@@ -329,6 +337,11 @@ class license_plate_processor:
                         if index == 4 or index == 5:
                             y_predict = self.license_plate_number_model.predict(img_aug)[0]
                             order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                            if self.number_map[order[0]] == '4':
+                                print(self.number_map[order[0]])
+                                y_predict = self.license_plate_number_model_backup.predict(img_aug)[0]
+                                order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                                print(self.number_map[order[0]])
                             #print(order)
                             plate_string = plate_string + str(self.number_map[order[0]])
                         elif index == 1:
@@ -340,6 +353,16 @@ class license_plate_processor:
                             y_predict = self.license_plate_letter_model.predict(img_aug)[0]
                             order = [i for i, j in enumerate(y_predict) if j > 0.5]
                             #print(order)
+                            if self.character_map[order[0]] == 'B':
+                                print(self.character_map[order[0]])
+                                y_predict = self.license_plate_letter_model_backup.predict(img_aug)[0]
+                                order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                                print(self.character_map[order[0]])
+                            if self.character_map[order[0]] == 'M':
+                                print(self.character_map[order[0]])
+                                y_predict = self.license_plate_letter_model_backup2.predict(img_aug)[0]
+                                order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                                print(self.character_map[order[0]])
                             plate_string = plate_string + str(self.character_map[order[0]])
         plate_string = "Richard carried, Maxwell sucks," + plate_string
         return plate_string
