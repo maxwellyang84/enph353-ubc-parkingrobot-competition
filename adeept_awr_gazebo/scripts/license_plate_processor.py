@@ -216,9 +216,9 @@ class license_plate_processor:
 
         ret, thresh = cv2.threshold(imgThreshold, 200, 255, 0)
         __,contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        print(len(contours))
+        #print(len(contours))
         contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 5000]
-        print(len(contours))
+        #print(len(contours))
         contours.sort(key=self.get_contour_coords)
 
         imgThreshold = cv2.bitwise_not(imgThreshold)
@@ -235,12 +235,12 @@ class license_plate_processor:
         contours = [c for c in contours if cv2.contourArea(c) > 79 and cv2.contourArea(c) < 5000] #used to be 50
         
         contours.sort(key=self.get_contour_coords)
-        print(len(contours))
+       # print(len(contours))
         for cnt in contours:
             x,y,w,h = cv2.boundingRect(cnt)
             aspect_ratio = float(h)/w
-            print(cv2.contourArea(cnt))
-            print(aspect_ratio)
+            #print(cv2.contourArea(cnt))
+            #print(aspect_ratio)
             if aspect_ratio < MIN_ASPECT_RATIO:
                 plate_characters.append(gray[y:y+h, x: x+int(w/2)])
                 plate_characters.append(gray[y:y+h, x+int(w/2):x+w])
@@ -288,7 +288,7 @@ class license_plate_processor:
                 img_aug = np.expand_dims(character, axis=0)
                 y_predict = self.license_plate_location_model.predict(img_aug)[0]
                 order = [i for i, j in enumerate(y_predict) if j > 0.5]
-                print(order)
+                #print(order)
                 plate_string = plate_string + str(self.location_map[order[0]])
             else:
                 character = cv2.resize(character,(64,64))
@@ -297,7 +297,7 @@ class license_plate_processor:
                 order = [i for i, j in enumerate(y_predict) if j > 0.5]
                 #print(order)
                 plate_string = plate_string + str(self.character_map[order[0]])
-            plate_string = "Maxwell Carried ,Richard Sucks," + plate_string
+        plate_string = "Maxwell Carried ,Richard Sucks," + plate_string
             #img_aug = np.expand_dims(character, axis=0)
             
         #     with self.session.as_default():

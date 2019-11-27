@@ -55,7 +55,7 @@ class state_machine:
         self.first_inner_car = False
         self.first_inner_pic_snapped = False
         print("Let's start with the inner plates...")
-        #self.lpp = license_plate_processor()
+        self.lpp = license_plate_processor()
         
    
     def callback(self,data):
@@ -112,7 +112,8 @@ class state_machine:
                     self.ros_starting_time = rospy.get_time()
                     print("Inner License plate snapped")
                     # print(time_elapsed)
-                    cv.imshow("Frame", frame)
+                    cv.imshow("License Plate Frame", frame)
+                    self.lpp.callback(frame, True)
                 
                 if ros_time_elapsed < 4.8 and self.first_inner_pic_snapped:
                     # print("waiting: " + str(time_elapsed))
@@ -124,15 +125,13 @@ class state_machine:
                 # print("second car")
                 if self.check_blue_car(frame, True):
                     print("Inner License plate snapped")
-                    cv.imshow("Frame", frame)
+                    cv.imshow("License Plate Frame", frame)
                     self.stop()
                     self.current_state = TRANSITION    
                     self.ros_starting_time = rospy.get_time()
-        #         # img_msg = self.bridge.cv2_to_imgmsg(frame)
-        #         # self.image_pub.publish(img_msg)
         #         #self.stop()
         #         #cv.imwrite("./license_plates/" + str(randint(0,10000)) + ".png", frame)
-        #         #self.lpp.callback(frame, True)
+                    self.lpp.callback(frame, True)
 
         elif self.current_state == TRANSITION:
             ros_time_elapsed = rospy.get_time() - self.ros_starting_time
@@ -163,11 +162,9 @@ class state_machine:
                 self.ros_starting_time = rospy.get_time()
                 print("Outer License plate snapped")
                 cv.imshow("Frame", frame)
-                # img_msg = self.bridge.cv2_to_imgmsg(frame)
-                # self.image_pub.publish(img_msg)
                 #self.stop()
                 #cv.imwrite("./license_plates/" + str(randint(0,10000)) + ".png", frame)
-                #self.lpp.callback(frame, False)
+                self.lpp.callback(frame, False)
         
         elif self.current_state == WATCHING:
             if self.watch_people(frame):
