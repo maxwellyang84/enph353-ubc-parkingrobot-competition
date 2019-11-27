@@ -297,7 +297,7 @@ class license_plate_processor:
                 order = [i for i, j in enumerate(y_predict) if j > 0.5]
                 #print(order)
                 plate_string = plate_string + str(self.character_map[order[0]])
-        plate_string = "Maxwell Carried ,Richard Sucks," + plate_string
+        plate_string = "Richard carried , Maxwell's ugly," + plate_string
             #img_aug = np.expand_dims(character, axis=0)
             
         #     with self.session.as_default():
