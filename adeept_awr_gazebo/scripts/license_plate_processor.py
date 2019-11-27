@@ -50,14 +50,14 @@ class license_plate_processor:
         keras.backend.set_session(self.session)
         self.license_plate_number_model = load_model('testnumbernn2.h5')#'number_neural_network11_less_blur_no_rotation.h5')
         self.license_plate_number_model._make_predict_function()
-        self.license_plate_letter_model = load_model('testletternn2.h5')#'letter_neural_network4.h5')
+        self.license_plate_letter_model = load_model('testletternnaddedletterstomostblurred.h5')#'letter_neural_network4.h5')
         self.license_plate_letter_model._make_predict_function()
         self.license_plate_location_model = load_model('location_model.h5')
         self.license_plate_location_model._make_predict_function()
 
         self.license_plate_number_model_backup = load_model("number_neural_network5_no_rotation.h5")
         self.license_plate_number_model_backup._make_predict_function()
-        self.license_plate_letter_model_backup = load_model("testletternnaddedmoreletterstomostblurred6.h5")
+        self.license_plate_letter_model_backup = load_model("testletternnaddedmoreletterstomostblurred5.h5")
         self.license_plate_letter_model_backup._make_predict_function()
 
         self.license_plate_letter_model_backup2 = load_model('testletternn2.h5')
@@ -348,11 +348,6 @@ class license_plate_processor:
                                 order = [i for i, j in enumerate(y_predict) if j > 0.5]
                                 print(self.number_map[order[0]])
                             #print(order)
-                            if self.number_map[order[0]] == '4':
-                                print(self.number_map[order[0]])
-                                y_predict = self.license_plate_number_model_backup.predict(img_aug)[0]
-                                order = [i for i, j in enumerate(y_predict) if j > 0.5]
-                                print(self.number_map[order[0]])
                             plate_string = plate_string + str(self.number_map[order[0]])
                         elif index == 1:
                             y_predict = self.license_plate_location_model.predict(img_aug)[0]
@@ -368,7 +363,7 @@ class license_plate_processor:
                                 y_predict = self.license_plate_letter_model_backup.predict(img_aug)[0]
                                 order = [i for i, j in enumerate(y_predict) if j > 0.5]
                                 print(self.character_map[order[0]])
-                            if self.character_map[order[0]] == 'M':
+                            if self.character_map[order[0]] == 'M' or self.character_map[order[0]] == 'G':
                                 print(self.character_map[order[0]])
                                 y_predict = self.license_plate_letter_model_backup2.predict(img_aug)[0]
                                 order = [i for i, j in enumerate(y_predict) if j > 0.5]
