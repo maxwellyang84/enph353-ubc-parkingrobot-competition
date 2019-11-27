@@ -189,7 +189,7 @@ class state_machine:
             #print(time_elapsed)
             if ros_time_elapsed < 0.2:
                 self.speed_controller(0)
-            elif ros_time_elapsed < 2.8: # 2.4, then 2.6
+            elif ros_time_elapsed < 3.2 : # 2.4, then 2.6, then 2.8
                 if self.check_crosswalk(frame):
                     self.speed_controller(0)
                 else:
@@ -228,7 +228,7 @@ class state_machine:
         cv.circle(frame, (2*NUM_PIXELS_X/6+15,Y_READ_PED), 15, (255,205,195), -1)
         cv.circle(frame, (750,Y_READ_PED), 15, (255,205,195), -1)
         cv.circle(frame, (850,Y_READ_PED), 15, (255,205,195), -1)
-        cv.imshow("Robot's view :3", frame)
+        #cv.imshow("Robot's view :3", frame)
         cv.waitKey(3) 
 
 
