@@ -57,6 +57,7 @@ class state_machine:
         print("Let's start with the inner plates...")
         self.lpp = license_plate_processor()
         
+        
    
     def callback(self,data):
         try:
