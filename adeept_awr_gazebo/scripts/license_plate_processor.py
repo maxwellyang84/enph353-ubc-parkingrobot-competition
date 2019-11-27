@@ -45,9 +45,9 @@ class license_plate_processor:
         self.session = tf.Session(config=config)
 
         keras.backend.set_session(self.session)
-        self.license_plate_number_model = load_model('testnumbernn2.h5')#'number_neural_network11_less_blur_no_rotation.h5')
+        self.license_plate_number_model = load_model('testnumbernnaddedletterstomostblurred.h5')#'number_neural_network11_less_blur_no_rotation.h5')
         self.license_plate_number_model._make_predict_function()
-        self.license_plate_letter_model = load_model('testletternnaddedletterstomostblurred.h5')#'letter_neural_network4.h5')
+        self.license_plate_letter_model = load_model('testletternnaddedmoreletterstomostblurred5.h5')#'letter_neural_network4.h5')
         self.license_plate_letter_model._make_predict_function()
         self.license_plate_location_model = load_model('location_model.h5')
         self.license_plate_location_model._make_predict_function()
