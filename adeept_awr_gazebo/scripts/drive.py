@@ -149,10 +149,10 @@ class state_machine:
 
         
         elif self.current_state == DRIVING:
+            ros_time_elapsed = rospy.get_time() - self.ros_starting_time
             position = state_machine.get_position(frame, self.last_pos)
             self.last_pos = position
             self.speed_controller(position)
-            ros_time_elapsed = rospy.get_time() - self.ros_starting_time
 
             if self.check_crosswalk(frame):
                 self.stop()
@@ -161,11 +161,10 @@ class state_machine:
             if self.check_blue_car(frame, False) and ros_time_elapsed > 0.4: # 0.4
                 self.ros_starting_time = rospy.get_time()
                 print("Outer License plate snapped")
-                cv.imshow("Frame", frame)
+                cv.imshow("License Plate Frame", frame)
                 #self.stop()
                 #cv.imwrite("./license_plates/" + str(randint(0,10000)) + ".png", frame)
                 self.lpp.callback(frame, False)
-        
         elif self.current_state == WATCHING:
             if self.watch_people(frame):
                 self.current_state = CROSS_THE_WALK
@@ -191,14 +190,14 @@ class state_machine:
         #      DEBUGGING TOOLS TO SEE BLACK AND WHITE
         cv.circle(frame, (READING_GAP, Y_READING_LEVEL), 15, (255,205,195), -1) #top two cicles are for linefollowing
         cv.circle(frame, (NUM_PIXELS_X-READING_GAP,Y_READING_LEVEL), 15, (255,205,195), -1)        
-        # cv.circle(frame, (READING_GAP,Y_READ_PLATES), 15, (255,205,195), -1)  #reading for white here  
+        cv.circle(frame, (READING_GAP,Y_READ_PLATES), 15, (255,205,195), -1)  #reading for white here  
         # cv.circle(frame, (NUM_PIXELS_X/3+10,Y_READ_PED), 15, (255,205,195), -1) #checking for ped on left
         # cv.circle(frame, (2*NUM_PIXELS_X/3,Y_READ_PED), 15, (255,205,195), -1)
-        cv.circle(frame, (X_CHECK_TRUCK_START, Y_CHECK_TRUCK), 15, (255,205,195), -1) #top two cicles are for linefollowing
-        cv.circle(frame, (X_CHECK_TRUCK_END, Y_CHECK_TRUCK), 15, (255,205,195), -1) #top two cicles are for linefollowing
-        cv.circle(frame, (X_READ_INNER_PLATES, Y_READ_PLATES), 15, (255,205,195), -1)  #inner reading plate
-        cv.circle(frame, (NUM_PIXELS_X-1, Y_READ_PLATES), 15, (255,205,195), -1) #inner reading plate
-        cv.circle(frame, (X_CHECK_INNER_BLUE, Y_CHECK_INNER_BLUE), 15, (255,205,195), -1) #inner check blue
+        # cv.circle(frame, (X_CHECK_TRUCK_START, Y_CHECK_TRUCK), 15, (255,205,195), -1) #looking for the ford
+        # cv.circle(frame, (X_CHECK_TRUCK_END, Y_CHECK_TRUCK), 15, (255,205,195), -1) #looking for the ford
+        # cv.circle(frame, (X_READ_INNER_PLATES, Y_READ_PLATES), 15, (255,205,195), -1)  #inner reading plate
+        # cv.circle(frame, (NUM_PIXELS_X-1, Y_READ_PLATES), 15, (255,205,195), -1) #inner reading plate
+        # cv.circle(frame, (X_CHECK_INNER_BLUE, Y_CHECK_INNER_BLUE), 15, (255,205,195), -1) #inner check blue
 
         # light_test = (100, 100, 100)
         # dark_test = (130, 130, 130)
@@ -258,7 +257,6 @@ class state_machine:
             return 1
         else:
             return 0
-        #when seeing red go till zebra, 5 white strips in grey road (not including white border)
 
 
     # def adjust_crosswalk(frame):
@@ -295,7 +293,7 @@ class state_machine:
                     white_pixels = white_pixels + 1
         #print("Num:" + " " +  str(white_pixels))
         
-            if (white_pixels < 50): #READING_GAP/4, 50
+            if (white_pixels < 60): #50 <--- if its 50 you will get corner pics!!!
                 return 0
 
             if ((blue_mask[150,0] != 0) or (blue2_mask[150,0] != 0)): #make sure edge isnt blue
@@ -314,6 +312,7 @@ class state_machine:
                         check_stripes = 4
                     if (check_stripes == 4):
                         #print("passed stripes test")
+                        #print("Passed, num white = " + str(white_pixels))
                         return 1
                 return 0
         

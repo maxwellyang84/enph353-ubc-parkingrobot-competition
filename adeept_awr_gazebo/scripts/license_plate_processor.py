@@ -19,7 +19,6 @@ from tensorflow.python.keras.backend import set_session
 
 import rospy
 import sys
-from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
@@ -59,7 +58,8 @@ class license_plate_processor:
         self.number_map = self.init_number_map()
         self.location_map = self.init_location_map()
 
-        self.bridge = CvBridge()
+        self.richards_mac = False
+
 
     def init_character_map(self):
         self.character_map = {}
@@ -277,49 +277,50 @@ class license_plate_processor:
             #cv2.imwrite(str(randint(0,1000)) + ".png", character)
             if(index == 2):
                 plate_string = plate_string + ","
-            if index == 4 or index == 5:
-                character = cv2.resize(character,(64,64))
-                img_aug = np.expand_dims(character, axis=0)
-                y_predict = self.license_plate_number_model.predict(img_aug)[0]
-                order = [i for i, j in enumerate(y_predict) if j > 0.5]
-                 #print(order)
-                plate_string = plate_string + str(self.number_map[order[0]])
-            elif index == 1:
-                character = cv2.resize(character,(64,64))
-                img_aug = np.expand_dims(character, axis=0)
-                y_predict = self.license_plate_location_model.predict(img_aug)[0]
-                order = [i for i, j in enumerate(y_predict) if j > 0.5]
-                #print(order)
-                plate_string = plate_string + str(self.location_map[order[0]])
+            if not richards_mac:
+                if index == 4 or index == 5:
+                    character = cv2.resize(character,(64,64))
+                    img_aug = np.expand_dims(character, axis=0)
+                    y_predict = self.license_plate_number_model.predict(img_aug)[0]
+                    order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                    #print(order)
+                    plate_string = plate_string + str(self.number_map[order[0]])
+                elif index == 1:
+                    character = cv2.resize(character,(64,64))
+                    img_aug = np.expand_dims(character, axis=0)
+                    y_predict = self.license_plate_location_model.predict(img_aug)[0]
+                    order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                    #print(order)
+                    plate_string = plate_string + str(self.location_map[order[0]])
+                else:
+                    character = cv2.resize(character,(64,64))
+                    img_aug = np.expand_dims(character, axis=0)
+                    y_predict = self.license_plate_letter_model.predict(img_aug)[0]
+                    order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                    #print(order)
+                    plate_string = plate_string + str(self.character_map[order[0]])
             else:
                 character = cv2.resize(character,(64,64))
                 img_aug = np.expand_dims(character, axis=0)
-                y_predict = self.license_plate_letter_model.predict(img_aug)[0]
-                order = [i for i, j in enumerate(y_predict) if j > 0.5]
-                #print(order)
-                plate_string = plate_string + str(self.character_map[order[0]])
-        plate_string = "Richard carried , Maxwell's ugly," + plate_string
-            # character = cv2.resize(character,(64,64))
-            # img_aug = np.expand_dims(character, axis=0)
-            
-            # with self.session.as_default():
-            #     with self.session.graph.as_default():
-            #         if index == 4 or index == 5:
-            #             y_predict = self.license_plate_number_model.predict(img_aug)[0]
-            #             order = [i for i, j in enumerate(y_predict) if j > 0.5]
-            #             #print(order)
-            #             plate_string = plate_string + str(self.number_map[order[0]])
-            #         elif index == 1:
-            #             y_predict = self.license_plate_location_model.predict(img_aug)[0]
-            #             order = [i for i, j in enumerate(y_predict) if j > 0.5]
-            #             print(order)
-            #             plate_string = plate_string + str(self.location_map[order[0]])
-            #         else:
-            #             y_predict = self.license_plate_letter_model.predict(img_aug)[0]
-            #             order = [i for i, j in enumerate(y_predict) if j > 0.5]
-            #             #print(order)
-            #             plate_string = plate_string + str(self.character_map[order[0]])
-        #plate_string = "Richard carried, Maxwell sucks: " + plate_string
+                
+                with self.session.as_default():
+                    with self.session.graph.as_default():
+                        if index == 4 or index == 5:
+                            y_predict = self.license_plate_number_model.predict(img_aug)[0]
+                            order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                            #print(order)
+                            plate_string = plate_string + str(self.number_map[order[0]])
+                        elif index == 1:
+                            y_predict = self.license_plate_location_model.predict(img_aug)[0]
+                            order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                            print(order)
+                            plate_string = plate_string + str(self.location_map[order[0]])
+                        else:
+                            y_predict = self.license_plate_letter_model.predict(img_aug)[0]
+                            order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                            #print(order)
+                            plate_string = plate_string + str(self.character_map[order[0]])
+        plate_string = "Richard carried, Maxwell sucks: " + plate_string
         return plate_string
     
     def publish_license_plates(self, plate_string):
