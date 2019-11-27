@@ -3,7 +3,7 @@ import cv2
 
 lpp = license_plate_processor()
 #img = cv2.imread("./license_plates/4692.png") #5249, 7677, 4692 filter license contour by area more
-img = cv2.imread("./incorrectly_interpreted/6148.png") #5249, 7677, 4692 filter license contour by area more, 966
+img = cv2.imread("./incorrectly_interpreted/966.png") #5249, 7677, 4692 filter license contour by area more, 966
 
 lpp.callback(img, False)
 
