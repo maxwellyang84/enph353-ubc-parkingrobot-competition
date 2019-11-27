@@ -19,6 +19,7 @@ Y_READING_LEVEL = 345
 Y_READ_PLATES = 230 
 X_READ_INNER_PLATES = 1000
 Y_READ_PED = 90 
+X_READ_PED_INNER_RIGHT = 700
 Y_CHECK_TRUCK = 70
 X_CHECK_TRUCK_START = 430
 X_CHECK_TRUCK_END = 600
@@ -50,6 +51,7 @@ class state_machine:
             self.ros_starting_time = rospy.get_time()
         self.ros_starting_time = rospy.get_time()
         self.num_of_plates_snapped = 0
+        self.at_top_crosswalk = True
         self.initalized = False
         self.truck_spotted = False
         self.first_inner_car = False
@@ -65,6 +67,7 @@ class state_machine:
         except CvBridgeError as e:
             print(e)
         frame = state_machine.image_converter(cv_image) # crops 
+        
     
         if self.current_state == INITIALIZE: #for turning into initial loop first
             ros_time_elapsed = rospy.get_time() - self.ros_starting_time
@@ -117,10 +120,10 @@ class state_machine:
                     cv.imwrite("./license_plates/" + str(randint(0,10000)) + ".png", frame)
                     self.lpp.callback(frame, True)
                 
-                if ros_time_elapsed < 4.8 and self.first_inner_pic_snapped:
+                if ros_time_elapsed < 5 and self.first_inner_pic_snapped:
                     # print("waiting: " + str(time_elapsed))
                     self.stop()
-                elif ros_time_elapsed > 4.8 and self.first_inner_pic_snapped: 
+                elif ros_time_elapsed > 5 and self.first_inner_pic_snapped: 
                     self.first_inner_car = True
                     # print("onto second car")
             else:
@@ -161,6 +164,7 @@ class state_machine:
                 self.stop()
                 self.current_state = WATCHING
                 print("Stop! Looking for pedestrians...")
+
             if self.check_blue_car(frame, False) and ros_time_elapsed > 0.4: # 0.4
                 self.ros_starting_time = rospy.get_time()
                 print("Outer License plate snapped")
@@ -168,17 +172,25 @@ class state_machine:
                 #self.stop()
                 cv.imwrite("./license_plates/" + str(randint(0,10000)) + ".png", frame)
                 self.lpp.callback(frame, False)
+
         elif self.current_state == WATCHING:
-            if self.watch_people(frame):
-                self.current_state = CROSS_THE_WALK
-                self.ros_starting_time = rospy.get_time()
+            if self.at_top_crosswalk:
+                if self.watch_people(frame, True): #at top crosswalk
+                    self.current_state = CROSS_THE_WALK
+                    self.at_top_crosswalk = False # future crosswalk will be bottom one
+                    self.ros_starting_time = rospy.get_time()
+            else:
+                if self.watch_people(frame, False): #at bottom crosswalk
+                    self.current_state = CROSS_THE_WALK
+                    self.at_top_crosswalk = True # future crosswalk will be top one
+                    self.ros_starting_time = rospy.get_time()
         
         elif self.current_state == CROSS_THE_WALK:
             ros_time_elapsed = rospy.get_time() - self.ros_starting_time
             #print(time_elapsed)
             if ros_time_elapsed < 0.2:
                 self.speed_controller(0)
-            elif ros_time_elapsed < 2.6: # 2.4
+            elif ros_time_elapsed < 2.8: # 2.4, then 2.6
                 if self.check_crosswalk(frame):
                     self.speed_controller(0)
                 else:
@@ -210,9 +222,10 @@ class state_machine:
 
         light_test = (20, 20, 20)
         dark_test = (110, 70, 70)
-        frame = cv.inRange(frame, light_test, dark_test) #road is white and majority of other stuff is black
+        # frame = cv.inRange(frame, light_test, dark_test) #road is white and majority of other stuff is black
         cv.circle(frame, (NUM_PIXELS_X/6,Y_READ_PED), 15, (255,205,195), -1) #checking for ped on left
         cv.circle(frame, (2*NUM_PIXELS_X/6+15,Y_READ_PED), 15, (255,205,195), -1)
+        cv.circle(frame, (X_READ_PED_INNER_RIGHT,Y_READ_PED), 15, (255,205,195), -1)
         cv.imshow("Robot's view :3", frame)
         cv.waitKey(3) 
 
@@ -344,22 +357,44 @@ class state_machine:
             return 0
 
 
-    def watch_people(self, frame):  #y pixel at 85 is where we wanna look to see movement
+    def watch_people(self, frame, top_crosswalk):  #y pixel at 85 is where we wanna look to see movement
         #Y_READ_PED = 90             (NUM_PIXELS_X/3,Y_READ_PED)
         light_jeans = (20, 20, 20)
         dark_jeans = (110, 70, 70)
         jeans_mask = cv.inRange(frame, light_jeans, dark_jeans) #road is white and majority of other stuff is black
         jean_pixels = 0
+        mid_pixels = 0
 
-        for i in range(NUM_PIXELS_X/6+15): #we want 10 pixels
-            if jeans_mask[Y_READ_PED, NUM_PIXELS_X/6+i] != 0:
-                jean_pixels = jean_pixels + 1
+        # cv.circle(frame, (NUM_PIXELS_X/6,Y_READ_PED), 15, (255,205,195), -1) #checking for ped on left
+        # cv.circle(frame, (2*NUM_PIXELS_X/6+15,Y_READ_PED), 15, (255,205,195), -1)
+        # cv.circle(frame, (X_READ_PED_INNER_RIGHT,Y_READ_PED), 15, (255,205,195), -1)
+        
+        if top_crosswalk:
+                           # this x value iss 440
+            for i in range(NUM_PIXELS_X/6+15): #we want 10 pixels, counting pixels to the left...
+                if jeans_mask[Y_READ_PED, NUM_PIXELS_X/6+i] != 0:
+                    jean_pixels = jean_pixels + 1
 
-        if jean_pixels > 10:
-            print("hes on the left!!! go")
-            return 1
+            #print("(top) num of pixels between these balls: " + str(jean_pixels))
+
+            if jean_pixels > 10:
+                print("Top crosswalk: He's on the left!!! Go")
+                return 1
+            else:
+                return 0
         else:
-            return 0
+            for i in range(400-215): #we want 10 pixels, counting pixels to the left...
+                if jeans_mask[Y_READ_PED, 215+i] != 0:
+                    jean_pixels = jean_pixels + 1
+
+            #print("(bot) num of jean pixels between these balls: " + str(jean_pixels))
+
+            if jean_pixels > 10:
+                print("Bottom crosswalk: He's on the left!!! Go")
+                return 1
+            else:
+                return 0    
+
 
     def watch_truck(self, frame):  #gets like over 40 pixels pretty often
         light_truck = (100, 100, 100)
