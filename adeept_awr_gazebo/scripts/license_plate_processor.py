@@ -35,6 +35,9 @@ config = tf.ConfigProto(
 config.gpu_options.allow_growth = True
 config.gpu_options.per_process_gpu_memory_fraction = 0.6
 
+location_map = {0: '1',1:'2',2:'3',3: '4',4:'5',5:'6',6: '7',7:'8'}
+number_map = {0: '0',1:'1',2:'2',3: '3',4:'4',5:'5',6: '6',7:'7',8:'8',9:'9'}
+character_map = {0:'A',1:'B',2:'C',3:'D',4:'E',5:'F',6:'G',7:'H',8:'I',9:'J',10:'K',11:'L',12:'M',13:'N',14:'O',15:'P',16:'Q',17:'R',18:'S',19:'T',20:'U',21:'V',22:'W',23:'X',24:'Y',25:'Z'}
 
 class license_plate_processor:
 
@@ -47,7 +50,7 @@ class license_plate_processor:
         keras.backend.set_session(self.session)
         self.license_plate_number_model = load_model('testnumbernn2.h5')#'number_neural_network11_less_blur_no_rotation.h5')
         self.license_plate_number_model._make_predict_function()
-        self.license_plate_letter_model = load_model('testletternnaddedletterstomostblurred.h5')#'letter_neural_network4.h5')
+        self.license_plate_letter_model = load_model('testletternn2.h5')#'letter_neural_network4.h5')
         self.license_plate_letter_model._make_predict_function()
         self.license_plate_location_model = load_model('location_model.h5')
         self.license_plate_location_model._make_predict_function()
@@ -62,9 +65,9 @@ class license_plate_processor:
 
         self.license_plate_pub = rospy.Publisher("/license_plate", String, queue_size=30)
        
-        self.character_map = self.init_character_map()
-        self.number_map = self.init_number_map()
-        self.location_map = self.init_location_map()
+        self.character_map = character_map
+        self.number_map = number_map
+        self.location_map = location_map
 
         self.richards_mac = False
 
@@ -125,7 +128,7 @@ class license_plate_processor:
             top_white_contour = cnts[-1]
         #cv2.drawContours(image, cnts,-1, (0,255,255), 3)
         
-        cv2.imshow("Plate to Process", image) #used to be S
+        #cv2.imshow("Plate to Process", image) #used to be S
 
         if not self.richards_mac:
             cv2.imshow("<MM", image)
@@ -222,15 +225,17 @@ class license_plate_processor:
         #cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
 
         plate_characters = []
-        if not self.richards_mac:
-            cv2.imshow("gray", gray)
+        #if not self.richards_mac:
+            #cv2.imshow("gray", gray)
         
 
         ret, thresh = cv2.threshold(imgThreshold, 200, 255, 0)
         __,contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        #print(len(contours))
-        contours = [c for c in contours if cv2.contourArea(c) > 100 and cv2.contourArea(c) < 5000]
-        #print(len(contours))
+        # print(cv2.contourArea(contours[0]))
+        # print(cv2.contourArea(contours[1]))
+        # print(len(contours))
+        contours = [c for c in contours if cv2.contourArea(c) > 95 and cv2.contourArea(c) < 5000]
+        # print(len(contours))
         contours.sort(key=self.get_contour_coords)
 
         imgThreshold = cv2.bitwise_not(imgThreshold)
@@ -263,18 +268,18 @@ class license_plate_processor:
         count = 0
         for characters in plate_characters:
             #cv2.imwrite("./cnn_cropped_letters/" + str(randint(0,10000)) + ".png", characters)
-            if not self.richards_mac:
-                cv2.imshow(str(count), characters)
+            # if not self.richards_mac:
+            #     cv2.imshow(str(count), characters)
             count = count + 1
         
         cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
-        if not self.richards_mac:
-            cv2.imshow("plates", cropped)
-            cv2.imshow("License Plate", mask)
+        #if not self.richards_mac:
+            #cv2.imshow("plates", cropped)
+            #cv2.imshow("License Plate", mask)
 
         # imgThreshold = imgThreshold[50:, :]
-        if not self.richards_mac:
-            cv2.imshow("Location", imgThreshold)
+        #if not self.richards_mac:
+            #cv2.imshow("Location", imgThreshold)
        
         # plate_characters.reverse()
         return plate_characters
@@ -316,7 +321,7 @@ class license_plate_processor:
                     img_aug = np.expand_dims(character, axis=0)
                     y_predict = self.license_plate_letter_model.predict(img_aug)[0]
                     order = [i for i, j in enumerate(y_predict) if j > 0.5]
-                    if self.character_map[order[0]] == 'B':
+                    if self.character_map[order[0]] == 'A' or self.character_map[order[0]] == 'F':
                         print(self.character_map[order[0]])
                         y_predict = self.license_plate_letter_model_backup.predict(img_aug)[0]
                         order = [i for i, j in enumerate(y_predict) if j > 0.5]
