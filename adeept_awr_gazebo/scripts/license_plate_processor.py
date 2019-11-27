@@ -277,7 +277,7 @@ class license_plate_processor:
             #cv2.imwrite(str(randint(0,1000)) + ".png", character)
             if(index == 2):
                 plate_string = plate_string + ","
-            if not richards_mac:
+            if not self.richards_mac:
                 if index == 4 or index == 5:
                     character = cv2.resize(character,(64,64))
                     img_aug = np.expand_dims(character, axis=0)
