@@ -295,6 +295,11 @@ class license_plate_processor:
                     y_predict = self.license_plate_number_model.predict(img_aug)[0]
                     order = [i for i, j in enumerate(y_predict) if j > 0.5]
                     #print(order)
+                    if order[0] == 52:
+                        print(self.number_map[order[0]])
+                        y_predict = self.license_plate_number_model_backup(img_aug)[0]
+                        order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                        print(self.number_map[order[0]])
                     plate_string = plate_string + str(self.number_map[order[0]])
                 elif index == 1:
                     character = cv2.resize(character,(64,64))
@@ -308,6 +313,11 @@ class license_plate_processor:
                     img_aug = np.expand_dims(character, axis=0)
                     y_predict = self.license_plate_letter_model.predict(img_aug)[0]
                     order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                    if order[0] == 66:
+                        print(self.letter_map[order[0]])
+                        y_predict = self.license_plate_letter_model_backup(img_aug)[0]
+                        order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                        print(self.letter_map[order[0]])
                     #print(order)
                     plate_string = plate_string + str(self.character_map[order[0]])
             else:
