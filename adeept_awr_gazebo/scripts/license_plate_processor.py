@@ -60,7 +60,7 @@ class license_plate_processor:
         self.license_plate_letter_model_backup = load_model("testletternnaddedmoreletterstomostblurred6.h5")
         self.license_plate_letter_model_backup._make_predict_function()
 
-        self.license_plate_letter_model_backup2 = load_model('testletternnaddedletterstomostblurred.h5.h5')
+        self.license_plate_letter_model_backup2 = load_model('testletternnaddedletterstomostblurred.h5')
         self.license_plate_letter_model_backup2._make_predict_function()
 
         self.license_plate_pub = rospy.Publisher("/license_plate", String, queue_size=30)
