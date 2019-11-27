@@ -58,7 +58,7 @@ class license_plate_processor:
         self.number_map = self.init_number_map()
         self.location_map = self.init_location_map()
 
-        self.richards_mac = False
+        self.richards_mac = True
 
 
     def init_character_map(self):
@@ -116,8 +116,11 @@ class license_plate_processor:
             bottom_white_contour = cnts[-2]
             top_white_contour = cnts[-1]
         #cv2.drawContours(image, cnts,-1, (0,255,255), 3)
-        cv2.imshow("S", image)
-        cv2.imshow("<MM", image)
+        
+        cv2.imshow("Plate to Process", image) #used to be S
+
+        if not self.richards_mac:
+            cv2.imshow("<MM", image)
         
        
        
@@ -211,8 +214,8 @@ class license_plate_processor:
         #cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
 
         plate_characters = []
-
-        cv2.imshow("gray", gray)
+        if not self.richards_mac:
+            cv2.imshow("gray", gray)
         
 
         ret, thresh = cv2.threshold(imgThreshold, 200, 255, 0)
@@ -251,18 +254,20 @@ class license_plate_processor:
         
         count = 0
         for characters in plate_characters:
-            cv2.imshow(str(count), characters)
+            if not self.richards_mac:
+                cv2.imshow(str(count), characters)
             count = count + 1
         
         cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
-        cv2.imshow("plate", cropped)
-        cv2.imshow("plates", cropped)
-        cv2.imshow("License Plate", mask)
+        if not self.richards_mac:
+            cv2.imshow("plates", cropped)
+            cv2.imshow("License Plate", mask)
         # while 1:
         #    pass
 
         # imgThreshold = imgThreshold[50:, :]
-        cv2.imshow("Location", imgThreshold)
+        if not self.richards_mac:
+            cv2.imshow("Location", imgThreshold)
        
         # plate_characters.reverse()
         return plate_characters
