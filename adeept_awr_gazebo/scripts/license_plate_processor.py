@@ -58,7 +58,7 @@ class license_plate_processor:
         self.number_map = self.init_number_map()
         self.location_map = self.init_location_map()
 
-        self.richards_mac = False
+        self.richards_mac = True
 
 
     def init_character_map(self):
