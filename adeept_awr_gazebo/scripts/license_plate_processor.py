@@ -363,14 +363,11 @@ class license_plate_processor:
                                 y_predict = self.license_plate_letter_model_backup.predict(img_aug)[0]
                                 order = [i for i, j in enumerate(y_predict) if j > 0.5]
                                 print(self.character_map[order[0]])
-<<<<<<< HEAD
-=======
                             if self.character_map[order[0]] == 'M':
                                 print(self.character_map[order[0]])
                                 y_predict = self.license_plate_letter_model_backup2.predict(img_aug)[0]
                                 order = [i for i, j in enumerate(y_predict) if j > 0.5]
                                 print(self.character_map[order[0]])
->>>>>>> a85a9c821ebbbceff3d6e3e7b0a2d386eadd1aca
                             plate_string = plate_string + str(self.character_map[order[0]])
         plate_string = "Richard carried, Maxwell sucks," + plate_string
         return plate_string
