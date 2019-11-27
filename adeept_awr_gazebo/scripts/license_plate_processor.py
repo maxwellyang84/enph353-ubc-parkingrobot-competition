@@ -259,7 +259,7 @@ class license_plate_processor:
         
         count = 0
         for characters in plate_characters:
-            cv2.imwrite("./cnn_cropped_letters/" + str(randint(0,10000)) + ".png", characters)
+            #cv2.imwrite("./cnn_cropped_letters/" + str(randint(0,10000)) + ".png", characters)
             if not self.richards_mac:
                 cv2.imshow(str(count), characters)
             count = count + 1
