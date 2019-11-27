@@ -208,7 +208,7 @@ class state_machine:
         # cv.circle(frame, (READING_GAP,Y_READ_PLATES), 15, (255,205,195), -1)  #reading for white here  (outer loop)
         # cv.circle(frame, (NUM_PIXELS_X/6,Y_READ_PED), 15, (255,205,195), -1) #checking for ped on left, top crosswalk
         # cv.circle(frame, (2*NUM_PIXELS_X/6+15,Y_READ_PED), 15, (255,205,195), -1)
-        cv.circle(frame, (750,Y_READ_PED-10), 15, (255,205,195), -1) #checking for ped on right, bottom crosswalk
+        cv.circle(frame, (740,Y_READ_PED-10), 15, (255,205,195), -1) #checking for ped on right, bottom crosswalk
         cv.circle(frame, (815,Y_READ_PED-10), 15, (255,205,195), -1)
         # cv.circle(frame, (X_CHECK_TRUCK_START, Y_CHECK_TRUCK), 15, (255,205,195), -1) #looking for the ford
         # cv.circle(frame, (X_CHECK_TRUCK_END, Y_CHECK_TRUCK), 15, (255,205,195), -1) #looking for the ford
@@ -225,7 +225,7 @@ class state_machine:
         # light_test = (20, 20, 20)
         # dark_test = (110, 70, 70)
         # frame = cv.inRange(frame, light_test, dark_test) #road is white and majority of other stuff is black
-        # cv.circle(frame, (750,Y_READ_PED-10), 15, (255,205,195), -1) #checking for ped on right, bottom crosswalk
+        # cv.circle(frame, (740,Y_READ_PED-10), 15, (255,205,195), -1) #checking for ped on right, bottom crosswalk
         # cv.circle(frame, (815,Y_READ_PED-10), 15, (255,205,195), -1)
         cv.imshow("Robot's view :3", frame)
         cv.waitKey(3) 
@@ -386,8 +386,8 @@ class state_machine:
             else:
                 return 0
         else:
-            for i in range(815-750): #we want 10 pixels, counting pixels to the right...
-                if jeans_mask[Y_READ_PED-10, 750+i] != 0:
+            for i in range(815-740): #we want 10 pixels, counting pixels to the right...
+                if jeans_mask[Y_READ_PED-10, 740+i] != 0:
                     jean_pixels = jean_pixels + 1
 
             #print("(bot) num of jean pixels between these balls: " + str(jean_pixels))
