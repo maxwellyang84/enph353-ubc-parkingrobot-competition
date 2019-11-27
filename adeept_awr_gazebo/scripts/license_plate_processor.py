@@ -36,6 +36,7 @@ config = tf.ConfigProto(
 config.gpu_options.allow_growth = True
 config.gpu_options.per_process_gpu_memory_fraction = 0.6
 
+
 class license_plate_processor:
 
     def __init__(self):
@@ -332,9 +333,9 @@ class license_plate_processor:
         license_plate_image = self.image_cropper(image)
         plate_characters = self.split_characters(license_plate_image)
         plate_string = self.neural_network(plate_characters)
-        #self.publish_license_plates(plate_string)
+        self.publish_license_plates(plate_string)
         #teamID,teamPass,P1_AA00
-        print(plate_string)
+        #print(plate_string)
 
 
     @staticmethod
