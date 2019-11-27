@@ -24,7 +24,7 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import String
 from random import randint
 
-MIN_ASPECT_RATIO = 0.47
+MIN_ASPECT_RATIO = 0.51
 
 config = tf.ConfigProto(
     device_count={'GPU': 1},
@@ -45,9 +45,9 @@ class license_plate_processor:
         self.session = tf.Session(config=config)
 
         keras.backend.set_session(self.session)
-        self.license_plate_number_model = load_model('testnumbernnaddedletterstomostblurred.h5')#'number_neural_network11_less_blur_no_rotation.h5')
+        self.license_plate_number_model = load_model('number_neural_network5_no_rotation.h5')#'number_neural_network11_less_blur_no_rotation.h5')
         self.license_plate_number_model._make_predict_function()
-        self.license_plate_letter_model = load_model('testletternnaddedmoreletterstomostblurred5.h5')#'letter_neural_network4.h5')
+        self.license_plate_letter_model = load_model('testletternnaddedmoreletterstomostblurred6.h5')#'letter_neural_network4.h5')
         self.license_plate_letter_model._make_predict_function()
         self.license_plate_location_model = load_model('location_model.h5')
         self.license_plate_location_model._make_predict_function()
@@ -58,7 +58,7 @@ class license_plate_processor:
         self.number_map = self.init_number_map()
         self.location_map = self.init_location_map()
 
-        self.richards_mac = True
+        self.richards_mac = False
 
 
     def init_character_map(self):
@@ -244,7 +244,7 @@ class license_plate_processor:
             x,y,w,h = cv2.boundingRect(cnt)
             aspect_ratio = float(h)/w
             #print(cv2.contourArea(cnt))
-            #print(aspect_ratio)
+            print(aspect_ratio)
             if aspect_ratio < MIN_ASPECT_RATIO:
                 plate_characters.append(gray[y:y+h, x: x+int(w/2)])
                 plate_characters.append(gray[y:y+h, x+int(w/2):x+w])
@@ -263,8 +263,6 @@ class license_plate_processor:
         if not self.richards_mac:
             cv2.imshow("plates", cropped)
             cv2.imshow("License Plate", mask)
-        # while 1:
-        #    pass
 
         # imgThreshold = imgThreshold[50:, :]
         if not self.richards_mac:
