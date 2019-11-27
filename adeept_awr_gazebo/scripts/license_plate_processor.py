@@ -24,7 +24,7 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import String
 from random import randint
 
-MIN_ASPECT_RATIO = 0.45
+MIN_ASPECT_RATIO = 0.47
 
 config = tf.ConfigProto(
     device_count={'GPU': 1},
@@ -45,9 +45,9 @@ class license_plate_processor:
         self.session = tf.Session(config=config)
 
         keras.backend.set_session(self.session)
-        self.license_plate_number_model = load_model('number_neural_network11_less_blur_no_rotation.h5')
+        self.license_plate_number_model = load_model('testnumbernn2.h5')#'number_neural_network11_less_blur_no_rotation.h5')
         self.license_plate_number_model._make_predict_function()
-        self.license_plate_letter_model = load_model('letter_neural_network4.h5')
+        self.license_plate_letter_model = load_model('testletternnaddedletterstomostblurred.h5')#'letter_neural_network4.h5')
         self.license_plate_letter_model._make_predict_function()
         self.license_plate_location_model = load_model('location_model.h5')
         self.license_plate_location_model._make_predict_function()
@@ -236,7 +236,7 @@ class license_plate_processor:
         contours = [c for c in contours if cv2.contourArea(c) > 79 and cv2.contourArea(c) < 5000] #used to be 50
         
         contours.sort(key=self.get_contour_coords)
-       # print(len(contours))
+        #print(len(contours))
         for cnt in contours:
             x,y,w,h = cv2.boundingRect(cnt)
             aspect_ratio = float(h)/w
@@ -252,6 +252,7 @@ class license_plate_processor:
         count = 0
         for characters in plate_characters:
             cv2.imshow(str(count), characters)
+            cv2.imwrite("./cnn_cropped_letters/" + str(randint(0,10000)) + ".png", characters)
             count = count + 1
         
         cv2.drawContours(cropped, contours,-1, (0,255,255), 3)
@@ -269,6 +270,7 @@ class license_plate_processor:
 
     def neural_network(self, plate_characters):
         #print(len(plate_characters))
+        
         plate_string = ''
         for index, character in enumerate(plate_characters):
             if index == 0:
@@ -335,7 +337,7 @@ class license_plate_processor:
         license_plate_image = self.image_cropper(image)
         plate_characters = self.split_characters(license_plate_image)
         plate_string = self.neural_network(plate_characters)
-        self.publish_license_plates(plate_string)
+        #self.publish_license_plates(plate_string)
         #teamID,teamPass,P1_AA00
         print(plate_string)
 

@@ -113,6 +113,7 @@ class state_machine:
                     self.ros_starting_time = rospy.get_time()
                     print("Inner License plate snapped")
                     # print(time_elapsed)
+                    cv.imwrite("./license_plates/" + str(randint(0,10000)) + ".png", frame)
                     cv.imshow("License Plate Frame", frame)
                     self.lpp.callback(frame, True)
                 
@@ -131,7 +132,7 @@ class state_machine:
                     self.current_state = TRANSITION    
                     self.ros_starting_time = rospy.get_time()
         #         #self.stop()
-        #         #cv.imwrite("./license_plates/" + str(randint(0,10000)) + ".png", frame)
+                    cv.imwrite("./license_plates/" + str(randint(0,10000)) + ".png", frame)
                     self.lpp.callback(frame, True)
 
         elif self.current_state == TRANSITION:
@@ -164,7 +165,7 @@ class state_machine:
                 print("Outer License plate snapped")
                 cv.imshow("License Plate Frame", frame)
                 #self.stop()
-                #cv.imwrite("./license_plates/" + str(randint(0,10000)) + ".png", frame)
+                cv.imwrite("./license_plates/" + str(randint(0,10000)) + ".png", frame)
                 self.lpp.callback(frame, False)
         elif self.current_state == WATCHING:
             if self.watch_people(frame):
