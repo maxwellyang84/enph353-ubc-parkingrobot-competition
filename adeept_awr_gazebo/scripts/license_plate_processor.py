@@ -45,12 +45,17 @@ class license_plate_processor:
         self.session = tf.Session(config=config)
 
         keras.backend.set_session(self.session)
-        self.license_plate_number_model = load_model('number_neural_network5_no_rotation.h5')#'number_neural_network11_less_blur_no_rotation.h5')
+        self.license_plate_number_model = load_model('testnumbernn2')#'number_neural_network11_less_blur_no_rotation.h5')
         self.license_plate_number_model._make_predict_function()
-        self.license_plate_letter_model = load_model('testletternnaddedmoreletterstomostblurred6.h5')#'letter_neural_network4.h5')
+        self.license_plate_letter_model = load_model('testletternnaddedletterstomostblurred.h5')#'letter_neural_network4.h5')
         self.license_plate_letter_model._make_predict_function()
         self.license_plate_location_model = load_model('location_model.h5')
         self.license_plate_location_model._make_predict_function()
+
+        self.license_plate_number_model_backup = load_model("number_neural_network5_no_rotation.h5")
+        self.license_plate_number_model_backup._make_predict_function()
+        self.license_plate_letter_model_backup = load_model("testletternnaddedmoreletterstomostblurred6.h5")
+        self.license_plate_letter_model_backup._make_predict_function()
 
         self.license_plate_pub = rospy.Publisher("/license_plate", String, queue_size=30)
        
