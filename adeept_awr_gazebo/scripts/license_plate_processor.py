@@ -69,7 +69,7 @@ class license_plate_processor:
         self.number_map = number_map
         self.location_map = location_map
 
-        self.richards_mac = False
+        self.richards_mac = True
 
 
     def init_character_map(self):
@@ -128,7 +128,7 @@ class license_plate_processor:
             top_white_contour = cnts[-1]
         #cv2.drawContours(image, cnts,-1, (0,255,255), 3)
         
-        #cv2.imshow("Plate to Process", image) #used to be S
+        cv2.imshow("Plate to Process", image) #used to be S
 
         if not self.richards_mac:
             cv2.imshow("<MM", image)

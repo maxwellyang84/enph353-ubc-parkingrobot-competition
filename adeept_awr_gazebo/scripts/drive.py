@@ -124,10 +124,11 @@ class state_machine:
                     self.stop()
                 elif ros_time_elapsed > 5 and self.first_inner_pic_snapped: 
                     self.first_inner_car = True
+                    self.ros_starting_time = rospy.get_time()
                     # print("onto second car")
             else:
                 # print("second car")
-                if self.check_blue_car(frame, True):
+                if self.check_blue_car(frame, True) and ros_time_elapsed > 1.5:
                     print("Inner License plate snapped")
                     #cv.imshow("License Plate Frame", frame)
                     cv.imwrite("./license_plates/" + str(randint(0,10000)) + ".png", frame)
@@ -205,10 +206,10 @@ class state_machine:
         # cv.circle(frame, (READING_GAP, Y_READING_LEVEL), 15, (255,205,195), -1) #top two cicles are for linefollowing
         # cv.circle(frame, (NUM_PIXELS_X-READING_GAP,Y_READING_LEVEL), 15, (255,205,195), -1)        
         # cv.circle(frame, (READING_GAP,Y_READ_PLATES), 15, (255,205,195), -1)  #reading for white here  (outer loop)
-        cv.circle(frame, (NUM_PIXELS_X/6,Y_READ_PED), 15, (255,205,195), -1) #checking for ped on left, top crosswalk
-        cv.circle(frame, (2*NUM_PIXELS_X/6+15,Y_READ_PED), 15, (255,205,195), -1)
+        # cv.circle(frame, (NUM_PIXELS_X/6,Y_READ_PED), 15, (255,205,195), -1) #checking for ped on left, top crosswalk
+        # cv.circle(frame, (2*NUM_PIXELS_X/6+15,Y_READ_PED), 15, (255,205,195), -1)
         cv.circle(frame, (750,Y_READ_PED-10), 15, (255,205,195), -1) #checking for ped on right, bottom crosswalk
-        cv.circle(frame, (850,Y_READ_PED-10), 15, (255,205,195), -1)
+        cv.circle(frame, (815,Y_READ_PED-10), 15, (255,205,195), -1)
         # cv.circle(frame, (X_CHECK_TRUCK_START, Y_CHECK_TRUCK), 15, (255,205,195), -1) #looking for the ford
         # cv.circle(frame, (X_CHECK_TRUCK_END, Y_CHECK_TRUCK), 15, (255,205,195), -1) #looking for the ford
         # cv.circle(frame, (X_READ_INNER_PLATES, Y_READ_PLATES), 15, (255,205,195), -1)  #inner reading plate
@@ -224,11 +225,9 @@ class state_machine:
         # light_test = (20, 20, 20)
         # dark_test = (110, 70, 70)
         # frame = cv.inRange(frame, light_test, dark_test) #road is white and majority of other stuff is black
-        cv.circle(frame, (NUM_PIXELS_X/6,Y_READ_PED), 15, (255,205,195), -1) #checking for ped on left
-        cv.circle(frame, (2*NUM_PIXELS_X/6+15,Y_READ_PED), 15, (255,205,195), -1)
-        cv.circle(frame, (750,Y_READ_PED), 15, (255,205,195), -1)
-        cv.circle(frame, (850,Y_READ_PED), 15, (255,205,195), -1)
-        #cv.imshow("Robot's view :3", frame)
+        # cv.circle(frame, (750,Y_READ_PED-10), 15, (255,205,195), -1) #checking for ped on right, bottom crosswalk
+        # cv.circle(frame, (815,Y_READ_PED-10), 15, (255,205,195), -1)
+        cv.imshow("Robot's view :3", frame)
         cv.waitKey(3) 
 
 
@@ -351,7 +350,8 @@ class state_machine:
             if (white_pixels < 80):
                 return 0           
 
-            print(white_pixels)
+            # print(white_pixels)
+
             for i in range(NUM_PIXELS_X-X_CHECK_INNER_BLUE-1):
                 if blue_mask[Y_CHECK_INNER_BLUE,i+X_CHECK_INNER_BLUE] != 0 or blue2_mask[Y_CHECK_INNER_BLUE,i+X_CHECK_INNER_BLUE] != 0: #first blue
                     #print("FOUND INNER PLATE AYY")
@@ -386,14 +386,14 @@ class state_machine:
             else:
                 return 0
         else:
-            for i in range(850-750): #we want 10 pixels, counting pixels to the right...
+            for i in range(815-750): #we want 10 pixels, counting pixels to the right...
                 if jeans_mask[Y_READ_PED-10, 750+i] != 0:
                     jean_pixels = jean_pixels + 1
 
             #print("(bot) num of jean pixels between these balls: " + str(jean_pixels))
 
             if jean_pixels > 10:
-                print("Bottom crosswalk: He's on the left!!! Go")
+                print("Bottom crosswalk: He's on the right!!! Go")
                 return 1
             else:
                 return 0    
