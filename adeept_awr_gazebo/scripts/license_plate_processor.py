@@ -45,7 +45,7 @@ class license_plate_processor:
         self.session = tf.Session(config=config)
 
         keras.backend.set_session(self.session)
-        self.license_plate_number_model = load_model('testnumbernn2')#'number_neural_network11_less_blur_no_rotation.h5')
+        self.license_plate_number_model = load_model('testnumbernn2.h5')#'number_neural_network11_less_blur_no_rotation.h5')
         self.license_plate_number_model._make_predict_function()
         self.license_plate_letter_model = load_model('testletternnaddedletterstomostblurred.h5')#'letter_neural_network4.h5')
         self.license_plate_letter_model._make_predict_function()
@@ -63,7 +63,7 @@ class license_plate_processor:
         self.number_map = self.init_number_map()
         self.location_map = self.init_location_map()
 
-        self.richards_mac = True
+        self.richards_mac = False
 
 
     def init_character_map(self):
@@ -295,9 +295,9 @@ class license_plate_processor:
                     y_predict = self.license_plate_number_model.predict(img_aug)[0]
                     order = [i for i, j in enumerate(y_predict) if j > 0.5]
                     #print(order)
-                    if order[0] == 52:
+                    if self.number_map[order[0]] == '4':
                         print(self.number_map[order[0]])
-                        y_predict = self.license_plate_number_model_backup(img_aug)[0]
+                        y_predict = self.license_plate_number_model_backup.predict(img_aug)[0]
                         order = [i for i, j in enumerate(y_predict) if j > 0.5]
                         print(self.number_map[order[0]])
                     plate_string = plate_string + str(self.number_map[order[0]])
@@ -313,11 +313,11 @@ class license_plate_processor:
                     img_aug = np.expand_dims(character, axis=0)
                     y_predict = self.license_plate_letter_model.predict(img_aug)[0]
                     order = [i for i, j in enumerate(y_predict) if j > 0.5]
-                    if order[0] == 66:
-                        print(self.letter_map[order[0]])
-                        y_predict = self.license_plate_letter_model_backup(img_aug)[0]
+                    if self.character_map[order[0]] == 'B':
+                        print(self.character_map[order[0]])
+                        y_predict = self.license_plate_letter_model_backup.predict(img_aug)[0]
                         order = [i for i, j in enumerate(y_predict) if j > 0.5]
-                        print(self.letter_map[order[0]])
+                        print(self.character_map[order[0]])
                     #print(order)
                     plate_string = plate_string + str(self.character_map[order[0]])
             else:
@@ -341,7 +341,7 @@ class license_plate_processor:
                             order = [i for i, j in enumerate(y_predict) if j > 0.5]
                             #print(order)
                             plate_string = plate_string + str(self.character_map[order[0]])
-        plate_string = "Richard carried, Maxwell sucks: " + plate_string
+        plate_string = "Richard carried, Maxwell sucks," + plate_string
         return plate_string
     
     def publish_license_plates(self, plate_string):

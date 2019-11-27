@@ -3,9 +3,9 @@ import cv2
 
 lpp = license_plate_processor()
 #img = cv2.imread("./license_plates/4692.png") #5249, 7677, 4692 filter license contour by area more
-img = cv2.imread("./incorrectly_interpreted/9787.png") #5249, 7677, 4692 filter license contour by area more, 966
+img = cv2.imread("./incorrectly_interpreted/8490.png") #5249, 7677, 4692 filter license contour by area more, 966
 
-lpp.callback(img, False)
+lpp.callback(img, True)
 
 #RESULTS:
 #NN 4 thought 6244 had a 4 when it was a 0, 3776 had a 4 when it was an 8
