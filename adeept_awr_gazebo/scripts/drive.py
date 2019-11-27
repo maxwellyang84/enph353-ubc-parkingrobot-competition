@@ -190,7 +190,7 @@ class state_machine:
             #print(time_elapsed)
             if ros_time_elapsed < 0.2:
                 self.speed_controller(0)
-            elif ros_time_elapsed < 3.2 : # 2.4, then 2.6, then 2.8
+            elif ros_time_elapsed < 3.4 : # 2.4, then 2.6, then 2.8, then 3.4
                 if self.check_crosswalk(frame):
                     self.speed_controller(0)
                 else:
