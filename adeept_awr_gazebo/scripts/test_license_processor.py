@@ -18,3 +18,5 @@ lpp.callback(img, False)
 #GOOD CNNS: 
 #FOR LETTERS: testletternnaddedletterstomostblurred.h5, letter_neural_network_4, one of the other mostblurred thinks a B is an R, some of the others are okay, 6 is trash
 #FOR NUMBERS: testnumbernn2, number_neural_network11, nn_no_rotation gets the 8 right
+
+#QB32

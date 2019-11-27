@@ -57,7 +57,7 @@ class license_plate_processor:
         self.license_plate_letter_model_backup = load_model("testletternnaddedmoreletterstomostblurred6.h5")
         self.license_plate_letter_model_backup._make_predict_function()
 
-        self.license_plate_letter_model_backup2 = load_model('testlettercnn2.h5')
+        self.license_plate_letter_model_backup2 = load_model('testletternn2.h5')
         self.license_plate_letter_model_backup2._make_predict_function()
 
         self.license_plate_pub = rospy.Publisher("/license_plate", String, queue_size=30)
@@ -66,7 +66,7 @@ class license_plate_processor:
         self.number_map = self.init_number_map()
         self.location_map = self.init_location_map()
 
-        self.richards_mac = True
+        self.richards_mac = False
 
 
     def init_character_map(self):
@@ -358,19 +358,16 @@ class license_plate_processor:
                             y_predict = self.license_plate_letter_model.predict(img_aug)[0]
                             order = [i for i, j in enumerate(y_predict) if j > 0.5]
                             #print(order)
-                            if self.character_map[order[0]] == 'B':
+                            if self.character_map[order[0]] == 'A' or self.character_map[order[0]] == 'F':
                                 print(self.character_map[order[0]])
                                 y_predict = self.license_plate_letter_model_backup.predict(img_aug)[0]
                                 order = [i for i, j in enumerate(y_predict) if j > 0.5]
                                 print(self.character_map[order[0]])
-<<<<<<< HEAD
-=======
                             if self.character_map[order[0]] == 'M':
                                 print(self.character_map[order[0]])
                                 y_predict = self.license_plate_letter_model_backup2.predict(img_aug)[0]
                                 order = [i for i, j in enumerate(y_predict) if j > 0.5]
                                 print(self.character_map[order[0]])
->>>>>>> a85a9c821ebbbceff3d6e3e7b0a2d386eadd1aca
                             plate_string = plate_string + str(self.character_map[order[0]])
         plate_string = "Richard carried, Maxwell sucks," + plate_string
         return plate_string
@@ -389,7 +386,7 @@ class license_plate_processor:
         license_plate_image = self.image_cropper(image)
         plate_characters = self.split_characters(license_plate_image)
         plate_string = self.neural_network(plate_characters)
-        #self.publish_license_plates(plate_string)
+        self.publish_license_plates(plate_string)
         #teamID,teamPass,P1_AA00
         print(plate_string)
 
