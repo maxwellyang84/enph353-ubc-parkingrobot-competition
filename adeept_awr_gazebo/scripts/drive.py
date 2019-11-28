@@ -227,7 +227,7 @@ class state_machine:
         # frame = cv.inRange(frame, light_test, dark_test) #road is white and majority of other stuff is black
         # cv.circle(frame, (740,Y_READ_PED-10), 15, (255,205,195), -1) #checking for ped on right, bottom crosswalk
         # cv.circle(frame, (815,Y_READ_PED-10), 15, (255,205,195), -1)
-        cv.imshow("Robot's view :3", frame)
+        #cv.imshow("Robot's view :3", frame)
         cv.waitKey(3) 
 
 
