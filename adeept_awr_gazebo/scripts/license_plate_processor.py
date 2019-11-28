@@ -303,7 +303,7 @@ class license_plate_processor:
                     y_predict = self.license_plate_number_model.predict(img_aug)[0]
                     order = [i for i, j in enumerate(y_predict) if j > 0.5]
                     #print(order)
-                    if self.number_map[order[0]] == '4' or self.number_map[order[0]] == '0':
+                    if self.number_map[order[0]] == '4':
                         print(self.number_map[order[0]])
                         y_predict = self.license_plate_number_model_backup.predict(img_aug)[0]
                         order = [i for i, j in enumerate(y_predict) if j > 0.5]
@@ -321,15 +321,17 @@ class license_plate_processor:
                     img_aug = np.expand_dims(character, axis=0)
                     y_predict = self.license_plate_letter_model.predict(img_aug)[0]
                     order = [i for i, j in enumerate(y_predict) if j > 0.5]
-                    if self.character_map[order[0]] == 'A' or self.character_map[order[0]] == 'F':
+                    if self.character_map[order[0]] == 'A' or self.character_map[order[0]] == 'F' or self.character_map[order[0]] == 'V':
                         print(self.character_map[order[0]])
                         y_predict = self.license_plate_letter_model_backup.predict(img_aug)[0]
                         order = [i for i, j in enumerate(y_predict) if j > 0.5]
                         print(self.character_map[order[0]])
-                    if self.character_map[order[0]] == 'M' or self.character_map[order[0]] == 'G' or self.character_map[order[0]] == 'O':
+                    if self.character_map[order[0]] == 'M' or self.character_map[order[0]] == 'G' or self.character_map[order[0]] == 'O' or self.character_map[order[0]] == 'V':
                         print(self.character_map[order[0]])
                         y_predict = self.license_plate_letter_model_backup2.predict(img_aug)[0]
-                        order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                        order2 = [i for i, j in enumerate(y_predict) if j > 0.5]
+                        if self.character_map[order2[0]] != 'Q':
+                                    order = order2
                         print(self.character_map[order[0]])
                     #print(order)
                     plate_string = plate_string + str(self.character_map[order[0]])
@@ -358,7 +360,7 @@ class license_plate_processor:
                             y_predict = self.license_plate_letter_model.predict(img_aug)[0]
                             order = [i for i, j in enumerate(y_predict) if j > 0.5]
                             #print(order)
-                            if self.character_map[order[0]] == 'A' or self.character_map[order[0]] == 'F':
+                            if self.character_map[order[0]] == 'A' or self.character_map[order[0]] == 'F' or self.character_map[order[0]] == 'V':
                                 print(self.character_map[order[0]])
                                 y_predict = self.license_plate_letter_model_backup.predict(img_aug)[0]
                                 order = [i for i, j in enumerate(y_predict) if j > 0.5]
@@ -366,7 +368,9 @@ class license_plate_processor:
                             if self.character_map[order[0]] == 'M' or self.character_map[order[0]] == 'G' or self.character_map[order[0]] == 'O':
                                 print(self.character_map[order[0]])
                                 y_predict = self.license_plate_letter_model_backup2.predict(img_aug)[0]
-                                order = [i for i, j in enumerate(y_predict) if j > 0.5]
+                                order2 = [i for i, j in enumerate(y_predict) if j > 0.5]
+                                if self.character_map[order2[0]] != 'Q':
+                                    order = order2
                                 print(self.character_map[order[0]])
                             plate_string = plate_string + str(self.character_map[order[0]])
         plate_string = "Richard carried, Maxwell sucks," + plate_string
